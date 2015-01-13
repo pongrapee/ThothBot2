@@ -158,5 +158,185 @@ class Keyword(object):
             self.current_run_tfidf.save_corpus_to_file( self.forum_tfidf_filename+"_"+now_str+".txt", "currentrun_stop_diff.txt", find_diff_only=True )
         #self.forum_tfidf.save_corpus_to_file( self.FORUM_CORPUS, "forum_stop_diff.txt", find_diff_only=True )
 
+class EmoWordsCount(object):
+    def __init__(self):
+        pass
+        dispatcher.connect(self.spider_closed, signals.spider_closed)
+    
+    def process_item(self, item, spider):
+        good_emo_wordlist = { 
+            ur'good':3,  
+            ur'ok':1, 
+            ur'ดี':3, 
+            ur'ชอบ':2,
+            ur'เฟรม':2,
+            ur'จักรยาน':2,
+            ur'เป็น':2,
+            ur'ครับ':2,
+            ur'ค่ะ':2,
+            ur'สนุก':2,
+            ur'เสือ':2,
+            ur'ภูเขา':2,
+            ur'รัก':3,
+            }
+
+        words = item['text_segmented'].split(' ')
+        #words = '''
+        #ลอง ที่ไหน ยัง ไง ต้อง ชอบ เอา ดี รถ ไป เอง มี ราย ละเอียด มั้
+        #- - ปั่น วัน ละ นิด จิต แจ่มใส -
+        #'''.split(' ')
+        #Print( words )
+        DebugPrintItem( item )
+        total_len = len(words)
+
+        print "DEBUG : EmoWordsCount : total_len",total_len
+
+        all_emo_word_count = 0
+        all_emo_word_count_f_10 = 0
+        all_emo_word_count_f_20 = 0
+        all_emo_word_count_f_30 = 0
+        all_emo_word_count_f_60 = 0
+        all_emo_word_count_f_100 = 0
+        all_emo_word_count_f_150 = 0
+        all_emo_word_count_l_10 = 0
+        all_emo_word_count_l_20 = 0
+        all_emo_word_count_l_30 = 0
+        all_emo_word_count_l_60 = 0
+        all_emo_word_count_l_100 = 0
+        all_emo_word_count_l_150 = 0
+
+        pos_emo_word_count = 0
+        pos_emo_word_count_f_10 = 0
+        pos_emo_word_count_f_20 = 0
+        pos_emo_word_count_f_30 = 0
+        pos_emo_word_count_f_60 = 0
+        pos_emo_word_count_f_100 = 0
+        pos_emo_word_count_f_150 = 0
+        pos_emo_word_count_l_10 = 0
+        pos_emo_word_count_l_20 = 0
+        pos_emo_word_count_l_30 = 0
+        pos_emo_word_count_l_60 = 0
+        pos_emo_word_count_l_100 = 0
+        pos_emo_word_count_l_150 = 0
+
+        neg_emo_word_count = 0
+        neg_emo_word_count_f_10 = 0
+        neg_emo_word_count_f_20 = 0
+        neg_emo_word_count_f_30 = 0
+        neg_emo_word_count_f_60 = 0
+        neg_emo_word_count_f_100 = 0
+        neg_emo_word_count_f_150 = 0
+        neg_emo_word_count_l_10 = 0
+        neg_emo_word_count_l_20 = 0
+        neg_emo_word_count_l_30 = 0
+        neg_emo_word_count_l_60 = 0
+        neg_emo_word_count_l_100 = 0
+        neg_emo_word_count_l_150 = 0
+
+        i = 0
+        j = total_len
+        avg_pos_dist = 0
+        last_pos_emo_pos = 0
+        for word in words:
+            j-=1
+            for row in good_emo_wordlist:
+                # print "DEBUG : Checking : "
+                # print word.decode('utf-8','ignore').encode('tis-620','ignore')
+                # print row.decode('utf-8','ignore').encode('tis-620','ignore')
+                if (word == row):
+                    print "DEBUG : Match :", word
+                    pos_emo_word_count+=1
+                    all_emo_word_count+=1
+
+                    ##find distance between pos emo
+                    if (pos_emo_word_count == 1):
+                        last_pos_emo_pos = i
+                    
+                    if (pos_emo_word_count > 1):
+                        avg_pos_dist = (((avg_pos_dist * (pos_emo_word_count-2)) + (i - last_pos_emo_pos))/(pos_emo_word_count-1))
+                        last_pos_emo_pos = i
+                    
+                    if (i<10):
+                        pos_emo_word_count_f_10+=1
+                        all_emo_word_count_f_10+=1
+                    
+                    if (i<20):
+                        pos_emo_word_count_f_20+=1
+                        all_emo_word_count_f_20+=1
+                    
+                    if (i<30):
+                        pos_emo_word_count_f_30+=1
+                        all_emo_word_count_f_30+=1
+                    
+                    if (i<60):
+                        pos_emo_word_count_f_60+=1
+                        all_emo_word_count_f_60+=1
+                    
+                    if (i<100):
+                        pos_emo_word_count_f_100+=1
+                        all_emo_word_count_f_100+=1
+                    
+                    if (i<150):
+                        pos_emo_word_count_f_150+=1
+                        all_emo_word_count_f_150+=1
+                    
+                    if (j<10):
+                        pos_emo_word_count_l_10+=1
+                        all_emo_word_count_l_10+=1
+                    
+                    if (j<20):
+                        pos_emo_word_count_l_20+=1
+                        all_emo_word_count_l_20+=1
+                    
+                    if (j<30):
+                        pos_emo_word_count_l_30+=1
+                        all_emo_word_count_l_30+=1
+                    
+                    if (j<60):
+                        pos_emo_word_count_l_60+=1
+                        all_emo_word_count_l_60+=1
+                    
+                    if (j<100):
+                        pos_emo_word_count_l_100+=1
+                        all_emo_word_count_l_100+=1
+                    
+                    if (j<150):
+                        pos_emo_word_count_l_150+=1
+                        all_emo_word_count_l_150+=1
+            i+=1
+
+        if (total_len > 0): 
+            ratio_all_emo_vs_total = all_emo_word_count / total_len
+            ratio_pos_emo_vs_total = pos_emo_word_count / total_len
+            ratio_neg_emo_vs_total = neg_emo_word_count / total_len
+        else:
+            ratio_all_emo_vs_total = 0
+            ratio_pos_emo_vs_total = 0
+            ratio_neg_emo_vs_total = 0
+        
+
+        if (neg_emo_word_count > 0):
+            ratio_pos_emo_vs_neg_emo = pos_emo_word_count / neg_emo_word_count 
+        else:
+            ratio_pos_emo_vs_neg_emo = 999
+        
+
+        if (neg_emo_word_count_f_10 > 0):
+            ratio_pos_emo_vs_neg_emo_f_10 = pos_emo_word_count_f_10 / neg_emo_word_count_f_10   
+        else:
+            ratio_pos_emo_vs_neg_emo_f_10 = 0
+
+        print "DEBUG : EmoWordsCount : all_emo_word_count",all_emo_word_count
+        print "DEBUG : EmoWordsCount : all_emo_word_count_f_10",all_emo_word_count_f_10
+        print "DEBUG : EmoWordsCount : all_emo_word_count_f_20",all_emo_word_count_f_20
+        print "DEBUG : EmoWordsCount : all_emo_word_count_f_30",all_emo_word_count_f_30
+        print "DEBUG : EmoWordsCount : all_emo_word_count_f_60",all_emo_word_count_f_60
+        print "DEBUG : EmoWordsCount : ratio_pos_emo_vs_total",ratio_pos_emo_vs_total
+        print "DEBUG : EmoWordsCount : all_emo_word_count",all_emo_word_count
+
+        return item
+
+    def spider_closed(self, spider):
+        pass
 
 

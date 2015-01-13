@@ -31,6 +31,7 @@ ITEM_PIPELINES = {
     #'WebBot2.pipelines.CheckIfAlreadyDone':10,
     'WebBot2.pipelines.TextSegmentation':20,
     'WebBot2.pipelines.Keyword':30,
+    'WebBot2.pipelines.EmoWordsCount':31,
     'WebBot2.pipelines.ToFile':100,
 }
 

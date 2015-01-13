@@ -29,4 +29,6 @@ class Webbot2Item(Item):
     sellscore       = Field()
     spamscore       = Field()
     keywordlist     = Field()
+    total_len       = Field()
+    all_emo_word_count      = Field()
     

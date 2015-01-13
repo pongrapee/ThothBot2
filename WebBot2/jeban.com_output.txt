@@ -1,0 +1,19 @@
+URL          :http://www.jeban.com/viewtopic.php?t=195462
+PageSig      :www.jeban.com_0_195462
+PostSig      :www.jeban.com_0_195462_5
+Title        :
+Text         :ใช้กล้องอะไรถ่ายค้า สีสวยจัง
+TxtSegmented :ใช้ กล้อง อะไร ถ่าย ค้า สี สวย จัง 
+Keywordlist  :ค้าสีสวย ค้าสี ถ่ายค้า สีสวยจัง ใช้กล้อง สวยจัง กล้อง ถ่าย สีสวย จัง
+Author       :weewrd
+Raw Datetime :7 minutes ago
+PostDate     :2014-12-25 15:46:45
+ParseDate    :2014-12-25 15:56:00
+Type         :comment
+Digest       :80821ad6ffcca8cbe453503d491e57d0
+Sale         :1
+Spam         :1
+SellScore    :-0.0
+SpamScore    :-0.0
+==========================================
+

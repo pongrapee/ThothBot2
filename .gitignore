@@ -44,3 +44,6 @@ Temporary Items
 
 # temp txt files
 *.txt
+
+#binary
+*.pyc

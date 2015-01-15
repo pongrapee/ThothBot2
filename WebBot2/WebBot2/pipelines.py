@@ -79,18 +79,18 @@ class TextSegmentation(object):
         pass
 
     def process_item(self, item, spider):
-        exe = Popen(['swath.exe'], stdout=PIPE, stdin=PIPE, stderr=None)
+        exe = Popen(['swath.exe'], cwd=r'C:\\temp\\swath', stdout=PIPE, stdin=PIPE, stderr=None)
         
         if exe is not None:
             swathinput = item['text']
             swathoutput = "Error Calling Swath"
-            if DEBUG: Print( swathinput )
+            if DEBUG or 1: Print( swathinput )
             swathoutput = (exe.communicate( swathinput.decode('utf-8','ignore').encode('tis-620','ignore') )[0]).decode('tis-620','ignore').encode('utf-8','ignore')
             item['text_segmented'] = ' '.join(swathoutput.split('|'))
             item['text_segmented'] = re.sub('([\s]){2,}', ' ', item['text_segmented'] )
-            if DEBUG: Print( item['text_segmented'] )
+            if DEBUG or 1: Print( item['text_segmented'] )
         else:
-            if DEBUG: print "Error openning SWATH"
+            if DEBUG or 1: print "Error openning SWATH"
             
         return item
 

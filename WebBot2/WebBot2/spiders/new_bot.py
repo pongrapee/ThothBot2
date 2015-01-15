@@ -141,7 +141,7 @@ class NewBotSpider(CrawlSpider):
 
         if sig in self.page_already_visited:
             #already visit this round, skip
-            if DEBUG or 1:
+            if DEBUG:
                 Print( "OLD :",site, forum, thread_id, page , "[", self.num_pages, self.num_posts, "]")
             return
         else:

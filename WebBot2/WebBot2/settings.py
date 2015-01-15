@@ -13,14 +13,14 @@ BOT_NAME = 'WebBot2'
 
 SPIDER_MODULES = ['WebBot2.spiders']
 NEWSPIDER_MODULE = 'WebBot2.spiders'
-CONCURRENT_REQUESTS = 60
-CONCURRENT_REQUESTS_PER_DOMAIN = 30
+CONCURRENT_REQUESTS = 20
+CONCURRENT_REQUESTS_PER_DOMAIN = 20
 DEPTH_LIMIT = 10
 DEPTH_PRIORITY = 0
 
 LOG_ENABLED = True
 LOG_STDOUT = False
-LOG_LEVEL = "ERROR" #CRITICAL, ERROR, WARNING, INFO, DEBUG. For more info see 
+LOG_LEVEL = "WARNING" #CRITICAL, ERROR, WARNING, INFO, DEBUG. For more info see 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 USER_AGENT = 'WebBot2'
@@ -33,6 +33,7 @@ ITEM_PIPELINES = {
     'WebBot2.pipelines.Keyword':30,
     'WebBot2.pipelines.EmoWordsCount':31,
     'WebBot2.pipelines.ToFile':100,
+    'WebBot2.pipelines.ToCSV':101,
 }
 
 EXTENSIONS = {
@@ -40,7 +41,7 @@ EXTENSIONS = {
 }
 
 #CLOSESPIDER -- 0 means no limit
-CLOSESPIDER_TIMEOUT = 600 #10minutes #number of seconds
+CLOSESPIDER_TIMEOUT = 300 #number of seconds
 CLOSESPIDER_ERRORCOUNT = 10
 CLOSESPIDER_PAGECOUNT = 5000
 

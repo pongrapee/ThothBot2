@@ -213,7 +213,7 @@ class Extractor:
                 Print( 'SpamScore    :', item['spamscore'] )
 
             #check duplicate
-            if self.IsNew( thread_id, item['post_id'] ):
+            if self.IsNew( thread_id+'_'+str(page), item['post_id'] ):
                 if self.IsRecent( item['datetime'] ):
                     items.append( item )
             

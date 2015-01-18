@@ -86,7 +86,7 @@ class Extractor:
         sorted_ids_seen = sorted(self.ids_seen.items(), key=lambda x: x[1][1], reverse=True)
 
         print "writing",self.currentconfig['configname']+'_pagelist.txt'
-        output_file = open(self.currentconfig['configname']+'_pagelist.txt', "w")
+        output_file = open('c:\\temp\\'+self.currentconfig['configname']+'_pagelist.txt', "w")
         #for pagesigature, currentmaxpostid in self.ids_seen.items():
             #output_file.write(pagesigature + ":" + str(currentmaxpostid[0])+ ":" + str(currentmaxpostid[1]) + "\n")
         for row in sorted_ids_seen:
@@ -95,7 +95,7 @@ class Extractor:
         now = datetime.utcnow() + timedelta(hours=7)
         now_str = now.strftime("%Y_%m_%d_%H_%M_%S")
         print "writing",self.currentconfig['configname']+'_pagelist'+now_str+'.txt'
-        output_file = open(self.currentconfig['configname']+'_pagelist_'+now_str+'.txt', "w")
+        output_file = open('c:\\temp\\'+self.currentconfig['configname']+'_pagelist_'+now_str+'.txt', "w")
         #for pagesigature, currentmaxpostid in self.ids_seen.items():
             #output_file.write(pagesigature + ":" + str(currentmaxpostid[0])+ ":" + str(currentmaxpostid[1]) + "\n")
         for row in sorted_ids_seen:

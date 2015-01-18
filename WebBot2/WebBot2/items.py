@@ -22,6 +22,7 @@ class Webbot2Item(Item):
     parse_date      = Field()
     post_id         = Field()
     
+    total_len       = Field()
     pagesignature   = Field()
     postsignature   = Field()
     digest          = Field()
@@ -99,3 +100,5 @@ class Webbot2Item(Item):
     neg_amp_val_per_word = Field()
 
     mood = Field()
+
+    delivery_tag = Field()

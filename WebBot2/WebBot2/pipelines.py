@@ -6,34 +6,24 @@
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: http://doc.scrapy.org/topics/item-pipeline.html
 from scrapy.exceptions import DropItem
-from subprocess import Popen, PIPE, STDOUT
 from helpers.helperlib import *
-import tfidf
+
 from scrapy import signals
 from scrapy.xlib.pydispatch import dispatcher
 from operator import itemgetter
 import os
 import re
 from datetime import *
-from WordCountFeatures import *
+
+from SentimentFeatures import *
+from TextSegmentation import *
+from Keyword import *
 
 DEBUG = False
 
-def get_corpus_files_list( forum_name = 'tfidf_corpus'):
-    files = filter(os.path.isfile, os.listdir('.'))
-    files = [f for f in files if re.match(forum_name+'_[0-9_]*.txt',f)]
-    files.sort(key=lambda x: os.path.getmtime(x))
-    files.reverse()
-    if DEBUG:
-        print "open file",files[:25]
-    return files[:25]
-
 def DebugPrintItem(item):
-    for attr in sorted(item):
-        if item[attr] is not None:
-            PrintNoNewLine( attr )
-            PrintNoNewLine( ":" )
-            Print(item[attr])
+    Print(item)
+    #wait_for_keypress()
         
 
 class ToFile(object):
@@ -42,7 +32,7 @@ class ToFile(object):
 
     def process_item(self, item, spider):
         if self.file is None:
-            self.file = open(spider.currentconfig['configname']+'_output.txt', "w")
+            self.file = open('c:\\temp\\'+spider.currentconfig['configname']+'_output.txt', "w")
   
         for attr in sorted(item):
             if item[attr] is not None:
@@ -57,7 +47,7 @@ class ToCSV(object):
         
     def process_item(self, item, spider):
         if self.file is None:
-            self.file = open(spider.currentconfig['configname']+'_output.tsv', "w")
+            self.file = open('c:\\temp\\'+spider.currentconfig['configname']+'_output.tsv', "w")
         if item is not None:
             if self.first_line:
                 self.first_line = False 
@@ -74,95 +64,42 @@ class ToCSV(object):
         return item
         
 
-class TextSegmentation(object):
+class TextSegmentationPipeline(object):
     def __init__(self):
-        pass
-
-    def process_item(self, item, spider):
-        exe = Popen(['swath.exe'], cwd=r'C:\\temp\\swath', stdout=PIPE, stdin=PIPE, stderr=None)
-        
-        if exe is not None:
-            swathinput = item['text']
-            swathoutput = "Error Calling Swath"
-            if DEBUG or 1: Print( swathinput )
-            swathoutput = (exe.communicate( swathinput.decode('utf-8','ignore').encode('tis-620','ignore') )[0]).decode('tis-620','ignore').encode('utf-8','ignore')
-            item['text_segmented'] = ' '.join(swathoutput.split('|'))
-            item['text_segmented'] = re.sub('([\s]){2,}', ' ', item['text_segmented'] )
-            if DEBUG or 1: Print( item['text_segmented'] )
-        else:
-            if DEBUG or 1: print "Error openning SWATH"
-            
-        return item
-
-class Keyword(object):
-
-    CORPUS = 'tfidf_corpus.txt'
-    NEW_STOPWORD = 'tfidf_new_stop.txt'
-    FORUM_CORPUS = None
-
-    def __init__(self):
-        #self.global_tfidf = None
-        self.current_run_tfidf = None
-        #self.forum_tfidf = None
-        self.five_most_recent_forum_tfidf = None
-        self.forum_tfidf_filename = None
-        self.corpus_files_list = None
-
+        self.TextSegmentation = TextSegmentation()
         dispatcher.connect(self.spider_closed, signals.spider_closed)
+
     def process_item(self, item, spider):
-        if self.forum_tfidf_filename is None:
-            self.forum_tfidf_filename = spider.currentconfig['configname']+"tfidf"
-        if self.corpus_files_list is None:
-            self.corpus_files_list = get_corpus_files_list(self.forum_tfidf_filename)
-        if self.FORUM_CORPUS is None:
-            self.FORUM_CORPUS = self.forum_tfidf_filename+".txt"
-        
-        #if self.global_tfidf is None:
-        #    self.global_tfidf = tfidf.TfIdf( corpus_filename = self.CORPUS, stopword_filename = self.STOPWORD, DEFAULT_IDF = 1.5 )
-        if self.current_run_tfidf is None:
-            self.current_run_tfidf = tfidf.TfIdf( corpus_filename = None, stopword_filename = 'tfidf_stop.txt', DEFAULT_IDF = 1.5 )
-        #if self.forum_tfidf is None:
-            #self.forum_tfidf = tfidf.TfIdf( corpus_filename = self.FORUM_CORPUS, stopword_filename = 'tfidf_stop.txt', DEFAULT_IDF = 1.5 )
-        if self.five_most_recent_forum_tfidf is None:
-            self.five_most_recent_forum_tfidf = tfidf.TfIdf( corpus_filename = self.corpus_files_list, stopword_filename = 'tfidf_stop.txt', DEFAULT_IDF = 1.5 )
-        #self.global_tfidf.add_input_document(item['text_segmented'])
-        self.current_run_tfidf.add_input_document(item['text_segmented'])
-        self.five_most_recent_forum_tfidf.add_input_document(item['text_segmented'])
-        #self.forum_tfidf.add_input_document(item['text_segmented'])
-        
-        active_tfidf = self.five_most_recent_forum_tfidf
-
-        keywords = active_tfidf.get_doc_keywords(item['text_segmented'])
-        #sorted(keywords, key=itemgetter(1), reverse=True)
-        keywordlist = []
-        for k,v in keywords[0:14]:
-            #PrintNoNewLine( k )
-            keywordlist.append( k )
-        if DEBUG :
-            print "keyword :",
-            Print( keywordlist )
-
-        item['keywordlist'] = ' '.join(keywordlist)
-        if DEBUG:
-            DebugPrintItem( item )
+        item = self.TextSegmentation.process_item( item ) 
+        if DEBUG: DebugPrintItem( item )
         return item
 
     def spider_closed(self, spider):
-        now = datetime.utcnow() + timedelta(hours=7)
-        now_str = now.strftime("%Y_%m_%d_%H_%M_%S")
-     
-        #self.global_tfidf.save_corpus_to_file( self.CORPUS, self.NEW_STOPWORD )
-        if self.current_run_tfidf is not None:
-            self.current_run_tfidf.save_corpus_to_file( self.forum_tfidf_filename+"_"+now_str+".txt", "currentrun_stop_diff.txt", find_diff_only=True )
-        #self.forum_tfidf.save_corpus_to_file( self.FORUM_CORPUS, "forum_stop_diff.txt", find_diff_only=True )
+        pass
 
-class EmoWordsCount(object):
+class KeywordPipeline(object):
+
     def __init__(self):
-        self.EmoWordsCountFeature = EmoWordsCountFeature()
+        self.Keyword = None
+        dispatcher.connect(self.spider_closed, signals.spider_closed)
+       
+    def process_item(self, item, spider):
+        if self.Keyword == None:
+            self.Keyword = Keyword( spider.currentconfig['configname'] )
+        self.Keyword.process_item( item )
+        return item
+
+    def spider_closed(self, spider):
+        if self.Keyword is not None:
+            self.Keyword.save_file()
+
+class SentimentFeaturesPipeline(object):
+    def __init__(self):
+        self.SentimentFeatures = SentimentFeatures()
         dispatcher.connect(self.spider_closed, signals.spider_closed)
         
     def process_item(self, item, spider):
-        self.EmoWordsCountFeature.process_item(item)
+        item = self.SentimentFeatures.process_item(item)
         if DEBUG: DebugPrintItem( item )
         return item
 

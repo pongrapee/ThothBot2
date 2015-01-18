@@ -35,6 +35,8 @@ import math
 import re
 from operator import itemgetter
 
+DEBUG = False
+
 class TfIdf:
 
   """Tf-idf class implementing http://en.wikipedia.org/wiki/Tf-idf.
@@ -63,7 +65,6 @@ class TfIdf:
 	self.num_docs = 0
 	self.term_num_docs = {}     # term : num_docs_containing_term
 	self.stopwords = []
-	self.mainstopwords = []
 	self.idf_default = DEFAULT_IDF
 
 	if corpus_filename:
@@ -74,6 +75,7 @@ class TfIdf:
 			files = [corpus_filename]
 
 		for file_name in files:
+			if DEBUG: print file_name
 			try:
 				corpus_file = open(file_name, "r")
 			except Exception as e:
@@ -99,8 +101,8 @@ class TfIdf:
 	  stopword_file = open(stopword_filename, "r")
 	  self.stopwords = [line.strip() for line in stopword_file]
 	
-	mainstopword_file = open('main_stop.txt', "r")
-	self.mainstopwords = [line.strip() for line in mainstopword_file]
+	#mainstopword_file = open('main_stop.txt', "r")
+	#self.mainstopwords = [line.strip() for line in mainstopword_file]
 	
   def get_tokens(self, str):
 	#print str.lower()
@@ -193,8 +195,8 @@ class TfIdf:
 	if term in self.stopwords:
 	  return 0
 	  
-	if term in self.mainstopwords:
-	  return 0
+	#if term in self.mainstopwords:
+	#  return 0
 	  
 	if not term in self.term_num_docs:
 	  return self.idf_default

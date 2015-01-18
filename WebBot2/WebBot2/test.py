@@ -4,30 +4,21 @@
 from pipelines import *
 from helpers.helperlib import *
 from BaseInMemQueueWorker import *
+from items import Webbot2Item
+import time
+
 
 if __name__ == "__main__":
     
-    jobs=[]
-    Q1 = Queue()
-    Q2 = Queue()
-    Q3 = Queue()
+    workpipeline = [
     
-    myQueueWorker = MyQueueGetter(input_queue=None, output_queue=Q1)
-    jobs.append(myQueueWorker.createinstance())
-    
-    myTextSegmentation = MyTextSegmentation(input_queue=Q1, output_queue=Q2)
-    jobs.append(myTextSegmentation.createinstance())
+        [MyQueueGetter,         1],
+        [MyTextSegmentation,    2],
+        [MyKeyword,             2],
+        [MySentimentFeatures,   2],
+        [MyQueuePutter,         2],
 
+    ]
 
-    for job in jobs:
-        job.start()
+    START_WORK_PIPELINE( workpipeline )
 
-    try:
-        while True:
-            for job in jobs:
-                job.join(30)
-    except KeyboardInterrupt:
-        print "TERMINATING"
-
-    for job in jobs:
-        job.terminate()

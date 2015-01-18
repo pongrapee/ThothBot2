@@ -29,9 +29,9 @@ ITEM_PIPELINES = {
     #'myproject.pipelines.PricePipeline': 300,
     #'myproject.pipelines.JsonWriterPipeline': 800,
     #'WebBot2.pipelines.CheckIfAlreadyDone':10,
-    'WebBot2.pipelines.TextSegmentation':20,
-    'WebBot2.pipelines.Keyword':30,
-    'WebBot2.pipelines.EmoWordsCount':31,
+    'WebBot2.pipelines.TextSegmentationPipeline':20,
+    'WebBot2.pipelines.KeywordPipeline':30,
+    'WebBot2.pipelines.SentimentFeaturesPipeline':31,
     'WebBot2.pipelines.ToFile':100,
     'WebBot2.pipelines.ToCSV':101,
 }

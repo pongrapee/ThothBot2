@@ -2,6 +2,8 @@
 # coding='utf-8'
 
 from helpers.helperlib import *
+import logging
+from items import Webbot2Item
 
 DEBUG = True
 
@@ -11,7 +13,7 @@ VALUE = 2
 
 
 
-class EmoWordsCountFeature(object):
+class SentimentFeatures(object):
     
     def __init__(self):
         self.emo_word_list = []
@@ -306,6 +308,7 @@ class EmoWordsCountFeature(object):
         else:
             ratio_pos_emo_vs_neg_emo_f_60 = 999
 
+        item['total_len'] = total_len
         item['all_emo_word_count'] = all_emo_word_count 
         # item['all_emo_word_count_f_10'] = all_emo_word_count_f_10 
         # item['all_emo_word_count_f_20'] = all_emo_word_count_f_20 
@@ -419,6 +422,11 @@ class EmoWordsCountFeature(object):
 
 if __name__ == "__main__":
 
-    
-    emowordcount = EmoWordsCount()
-    emowordcount.process_item(item)
+    item = Webbot2Item()
+    item['text_segmented'] = '''ผม อ่าน คอมเม้นท์ แล้ว รู้สึก ไม่ สบาย ใจ อยาก จะ บอก ว่า ไม่ เคย คิด ดิสเครดิส ใคร
+ดี ใจ และ ขอบคุณ ด้วย ซ้ำ ที่ รัฐ และ กทม. เริ่ม ส่งเสริม เรื่อง จักรยาน อย่าง จริง จัง
+แต่ ไหน ไหน ก็ ทำ แล้ว ก็ เลย อยาก ให้ ทาง ใช้ งาน ได้ จริง บกพร่อง ตรง ไหน เรา
+เป็น ประชาชน หาก แจ้ง กระจาย ข่าว ได้ ก็ ช่วย กัน ถือ ว่า เป็น หน้า ที่ พลเมือง'''
+    mySentimentFeatures = SentimentFeatures()
+    mySentimentFeatures.process_item(item)
+    Print(item)

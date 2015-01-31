@@ -5,7 +5,7 @@ from helpers.helperlib import *
 import logging
 from items import Webbot2Item
 
-DEBUG = True
+DEBUG = False
 
 WORD  = 0
 TYPE  = 1

@@ -20,14 +20,14 @@ class Keyword(object):
 
         self.corpus_files_list = self.get_corpus_files_list()
 
-        self.current_run_tfidf = tfidf.TfIdf( corpus_filename = None, stopword_filename = 'c:\\temp\\tfidf_stop.txt', DEFAULT_IDF = 1.5 )
-        self.recent_forum_tfidf = tfidf.TfIdf( corpus_filename = self.corpus_files_list, stopword_filename = 'c:\\temp\\tfidf_stop.txt', DEFAULT_IDF = 1.5 )
+        self.current_run_tfidf = tfidf.TfIdf( corpus_filename = None, stopword_filename = 'c:\\temp\\stop\\tfidf_stop.txt', DEFAULT_IDF = 1.5, prefix=forum_name )
+        self.recent_forum_tfidf = tfidf.TfIdf( corpus_filename = self.corpus_files_list, stopword_filename = 'c:\\temp\\stop\\tfidf_stop.txt', DEFAULT_IDF = 1.5 )
 
     def get_corpus_files_list(self):
 
         files_with_path = []
-        for file in [f for f in os.listdir('c:\\temp') if re.match(self.forum_name+'_[0-9_]*.txt',f)]:
-            files_with_path.append('c:\\temp\\'+file)
+        for file in [f for f in os.listdir('c:\\temp\\idf') if re.match(self.forum_name+'_[0-9_]*.txt',f)]:
+            files_with_path.append('c:\\temp\\idf\\'+file)
         files_with_path.sort(key=lambda x: os.path.getmtime(x))
         files_with_path.reverse()
 
@@ -41,9 +41,9 @@ class Keyword(object):
         now_str = now.strftime("%Y_%m_%d_%H_%M_%S")
      
         if self.current_run_tfidf is not None:
-            self.current_run_tfidf.save_corpus_to_file( 'c:\\temp\\'+self.forum_name+"_"+now_str+".txt", "currentrun_stop_diff.txt", find_diff_only=True )
+            self.current_run_tfidf.save_corpus_to_file( 'c:\\temp\\idf\\'+self.forum_name+"_"+now_str+".txt", 'c:\\temp\\stop\\'+"stop_diff_"+now_str+".txt", find_diff_only=True )
 
-    def process_item(self,item):
+    def process_item(self, item):
         self.current_run_tfidf.add_input_document(item['text_segmented'])
         self.recent_forum_tfidf.add_input_document(item['text_segmented'])
         

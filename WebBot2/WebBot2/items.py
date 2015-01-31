@@ -102,3 +102,12 @@ class Webbot2Item(Item):
     mood = Field()
 
     delivery_tag = Field()
+
+    group = Field()
+    subject = Field()
+
+    likes = Field()
+    shares = Field()
+
+    mood_original = Field()
+

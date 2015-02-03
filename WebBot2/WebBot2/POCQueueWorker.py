@@ -7,6 +7,7 @@ from TextSegmentation import *
 from Keyword import *
 from SentimentFeatures import *
 from pipelines import *
+import time
 
 class MyTextSegmentation(QueueWorkerTemplate):
     workertype = 'MyTextSegmentation'
@@ -98,7 +99,7 @@ def START_MQ_CONFIRM_WORK_PIPELINE_ST( worker_list, confirm_needed=False):
             except AttributeError: 
                 pass
             msg_processed = last_worker.msgcounter.value
-            if msg_processed % 100 == 0:
+            if msg_processed % 1000 == 0:
                 print "Processed :", msg_processed
             if input == 'QUIT':
                 break #while loop 
@@ -175,8 +176,8 @@ def START_MQ_CONFIRM_WORK_PIPELINE_MT( worker_list, confirm_needed=False ):
                 output+= "total msgs :"+str(msg_processed)+"\n"
                 output+= "===============================================================\n"
 
-                os.system('cls')
-                print output
+                #os.system('cls')
+                #print output
                 time.sleep(1)
 
     except KeyboardInterrupt:

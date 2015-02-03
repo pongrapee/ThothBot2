@@ -193,9 +193,7 @@ class MySQLGetter(QueueWorkerTemplate):
             assert(False)
         while True:
             input = Webbot2Item()
-            # while (self.input_queue.qsize()>0):            
-            #     input = self.input_queue.get()
-            output = self.process_item(None)
+            output = self.process_item(input)
             if output == 'QUIT':
                 self.send_to_next_queue('QUIT')
                 self.input_queue.put('QUIT')
@@ -203,6 +201,8 @@ class MySQLGetter(QueueWorkerTemplate):
             self.send_to_next_queue(output)
                 
     def process_item( self, item ):
+        if item is None:
+            assert False
         while self.more_data:
             if self.execute_sql == True:
                 if self.minidprocessed == False: #initial run
@@ -266,13 +266,13 @@ class MyCSVPutter(QueueWorkerTemplate):
                 for attr in sorted(item):
                     self.file.write( str(attr)+"\t" )
                 self.file.write("\n")
-            else:
-                for attr in sorted(item):
-                    if item[attr] is not None:
-                        self.file.write(  str(item[attr]).replace("\r"," ").replace("\n"," ").replace("\t"," ")+"\t" )
-                    else:
-                        self.file.write(  str(' ') )
-                self.file.write("\n")
+          
+            for attr in sorted(item):
+                if item[attr] is not None:
+                    self.file.write(  str(item[attr]).replace("\r"," ").replace("\n"," ").replace("\t"," ")+"\t" )
+                else:
+                    self.file.write(  str(' ') )
+            self.file.write("\n")
         self.msgcounter.value+=1
         
         return item

@@ -180,16 +180,19 @@ class MySQLGetter(QueueWorkerTemplate):
         self.passwd = passwd
         self.db = db
         if SQLSTATEMENT == '':
-            self.SQLSTATEMENT = 'SELECT `post_id`, `subject_name` as `subject`, `post_date` as `datetime`, `body` as `text`, `type`, `author`, `group`, `facebook_page_name` as `page_id`, `likes`, `shares`, `mood` as `mood_original` FROM facebook_c149 LIMIT 1000;'
+            self.SQLSTATEMENT = "SELECT `post_id`, `subject_name` as `subject`, `post_date` as `datetime`, `body` as `text`, `type`, `author`, `group`, `facebook_page_name` as `page_id`, `likes`, `shares`, `mood` as `mood_original` FROM facebook_c149 WHERE `post_id` {0} AND `post_date` > '2015-01-01' ORDER BY `post_id` DESC LIMIT 100;"
         else:
             self.SQLSTATEMENT = SQLSTATEMENT
         self.execute_sql = True
+        self.at_least_some_data = False
+        self.minidprocessed = 0
+        self.more_data = True
 
     def main_loop(self):
         if self.input_queue is None or self.output_queue is None:
             assert(False)
         while True:
-            input = None
+            input = Webbot2Item()
             # while (self.input_queue.qsize()>0):            
             #     input = self.input_queue.get()
             output = self.process_item(None)
@@ -200,25 +203,46 @@ class MySQLGetter(QueueWorkerTemplate):
             self.send_to_next_queue(output)
                 
     def process_item( self, item ):
-        if self.execute_sql == True:
-            self.sqldb = MySQLdb.connect(   host=self.host,
-                                            user=self.user,
-                                            passwd=self.passwd,
-                                            db=self.db,
-                                            use_unicode=True,
-                                            charset="utf8",
-                                        )
-            self.cursor = self.sqldb.cursor()
-            self.execute_sql = False
-            self.cursor.execute(self.SQLSTATEMENT)
-        row = self.cursor.fetchone()
-        if row is not None:
-            item = Webbot2Item()
-            for i in range(len(row)):
-                item[self.item_column_list[i]] = row[i]
-            self.msgcounter.value+=1
-        else:
-            return 'QUIT'
+        while self.more_data:
+            if self.execute_sql == True:
+                if self.minidprocessed == False: #initial run
+                    post_id_filter = ">'0'"
+                else:
+                    post_id_filter = "<'"+str(self.minidprocessed)+"'"
+
+                self.sqldb = MySQLdb.connect(   host=self.host,
+                                                user=self.user,
+                                                passwd=self.passwd,
+                                                db=self.db,
+                                                use_unicode=True,
+                                                charset="utf8",
+                                            )
+                self.cursor = self.sqldb.cursor()
+                #print self.SQLSTATEMENT.format(post_id_filter)
+                self.cursor.execute(self.SQLSTATEMENT.format(post_id_filter))
+                self.execute_sql = False
+                self.at_least_some_data = False
+                
+            row = self.cursor.fetchone()
+
+            if row is not None:
+                self.at_least_some_data = True
+                for i in range(len(row)):
+                    item[self.item_column_list[i]] = row[i]
+                if self.minidprocessed == 0 or self.minidprocessed > item['post_id']:
+                    self.minidprocessed = item['post_id']
+                #print item['post_id']
+                self.msgcounter.value+=1
+                break
+            else:
+                if self.at_least_some_data:
+                    self.execute_sql = True
+                    self.at_least_some_data = False
+                    continue
+                else:
+                    item = 'QUIT'
+                    self.more_data = False
+                    break
 
         return item
 

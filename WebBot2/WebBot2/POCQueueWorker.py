@@ -71,6 +71,7 @@ class MyDebugPrinter(QueueWorkerTemplate):
 
 
 def START_MQ_CONFIRM_WORK_PIPELINE_ST( worker_list, confirm_needed=False):
+    msg_processed=0
     _start = datetime.utcnow() + timedelta(hours=7)
     print _start
     pipeline = []
@@ -87,6 +88,7 @@ def START_MQ_CONFIRM_WORK_PIPELINE_ST( worker_list, confirm_needed=False):
         while True:
             input = Webbot2Item()
             for pipelinestep in pipeline: 
+                #print ">>", pipelinestep
                 input = pipelinestep.process_item(input)
                 if input == 'QUIT':
                     break #for loop

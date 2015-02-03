@@ -41,7 +41,7 @@ class Keyword(object):
         now_str = now.strftime("%Y_%m_%d_%H_%M_%S")
      
         if self.current_run_tfidf is not None:
-            self.current_run_tfidf.save_corpus_to_file( 'c:\\temp\\idf\\'+self.forum_name+"_"+now_str+".txt", 'c:\\temp\\stop\\'+"stop_diff_"+now_str+".txt", find_diff_only=True )
+            self.current_run_tfidf.save_corpus_to_file( 'c:\\temp\\idf\\'+self.forum_name+"_"+now_str+".txt", 'c:\\temp\\stop\\'+self.forum_name+"_stop_diff_"+now_str+".txt", find_diff_only=True )
 
     def process_item(self, item):
         self.current_run_tfidf.add_input_document(item['text_segmented'])

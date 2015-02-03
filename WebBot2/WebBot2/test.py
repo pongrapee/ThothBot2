@@ -16,7 +16,7 @@ if __name__ == "__main__":
         class MySQLGetterCurrentClient(MySQLGetter):
             def __init__(self):
                 super(MySQLGetterCurrentClient,self).__init__(
-                    SQLSTATEMENT='SELECT `post_id`, `subject_name` as `subject`, `post_date` as `datetime`, `body` as `text`, `type`, `author`, `group`, `facebook_page_name` as `page_id`, `likes`, `shares`, `mood` as `mood_original` FROM facebook_c'+str(clientid)+' LIMIT 1000;')
+                    SQLSTATEMENT="SELECT `post_id`, `subject_name` as `subject`, `post_date` as `datetime`, `body` as `text`, `type`, `author`, `group`, `facebook_page_name` as `page_id`, `likes`, `shares`, `mood` as `mood_original` FROM facebook_c"+str(clientid)+" WHERE `post_id` {0} AND `post_date` > '2015-01-01' ORDER BY `post_id` DESC LIMIT 1000;")
         class MyKeywordCurrentClient(MyKeyword):
             def __init__(self):
                 super(MyKeywordCurrentClient,self).__init__(name='c'+str(clientid))

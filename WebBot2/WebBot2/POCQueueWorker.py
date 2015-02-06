@@ -13,9 +13,11 @@ class MyTextSegmentation(QueueWorkerTemplate):
     workertype = 'MyTextSegmentation'
     def __init__(self, input_queue=None, output_queue=None, name='MyTextSegmentation', id=0):
         super(MyTextSegmentation,self).__init__(input_queue=input_queue, output_queue=output_queue, name=name, id=id)
-        self.myTextSegmentation = TextSegmentation()
+        self.myTextSegmentation = None
         
     def process_item( self, item ):
+        if self.myTextSegmentation == None:
+            self.myTextSegmentation = TextSegmentation()
         item = self.myTextSegmentation.process_item( item=item )
         try:
             logging.debug(self.worker_name+' :: item[text] : '+item['text'].decode('utf-8','ignore').encode('tis-620','ignore'))
@@ -29,10 +31,13 @@ class MyKeyword(QueueWorkerTemplate):
     workertype = 'MyKeyword'
     def __init__(self, input_queue=None, output_queue=None, name='MyKeyword', id=0):
         super(MyKeyword,self).__init__(input_queue=input_queue, output_queue=output_queue, name=name, id=id)
-        print 'setting up my keyword object for',self.name
-        self.myKeyword = Keyword(forum_name=self.worker_name)
-        
+        self.myKeyword = None
+    
     def process_item( self, item ):
+        
+        if self.myKeyword == None:
+            self.myKeyword = Keyword(forum_name=self.worker_name)
+        
         item = self.myKeyword.process_item( item=item )
         try:
             logging.debug(self.worker_name+' :: item[keywordlist] : ')
@@ -44,17 +49,20 @@ class MyKeyword(QueueWorkerTemplate):
         return item
 
     def on_quit(self):
-        print "my keyword saving file"
-        self.myKeyword.save_file()
+        print "mykeyword onquit"
+        if self.myKeyword is not None:
+            self.myKeyword.save_file()
      
 
 class MySentimentFeatures(QueueWorkerTemplate):
     workertype = 'MySentimentFeatures'
     def __init__(self, input_queue=None, output_queue=None, name='MySentimentFeatures', id=0):
         super(MySentimentFeatures,self).__init__(input_queue=input_queue, output_queue=output_queue, name=name, id=id)
-        self.mySentimentFeatures = SentimentFeatures()
+        self.mySentimentFeatures = None
         
     def process_item( self, item ):
+        if self.mySentimentFeatures == None:
+            self.mySentimentFeatures = SentimentFeatures()
         item = self.mySentimentFeatures.process_item( item=item )
         self.msgcounter.value+=1
         return item
@@ -71,16 +79,16 @@ class MyDebugPrinter(QueueWorkerTemplate):
         return item
 
 
-def START_MQ_CONFIRM_WORK_PIPELINE_ST( worker_list, confirm_needed=False):
+def START_MQ_CONFIRM_WORK_PIPELINE_ST( worker_list=[], confirm_needed=False, client_id='c153', silent=False, ):
     msg_processed=0
     _start = datetime.utcnow() + timedelta(hours=7)
-    print _start
+    if not silent: print _start
     pipeline = []
     first_worker = None
     last_worker  = None
     for workerclass, numworker in worker_list:
-        print workerclass.workertype
-        worker = workerclass()
+        if not silent: print workerclass.workertype
+        worker = workerclass( name=client_id )
         pipeline.append( worker )
         if first_worker == None: first_worker = worker
         last_worker = worker
@@ -89,7 +97,6 @@ def START_MQ_CONFIRM_WORK_PIPELINE_ST( worker_list, confirm_needed=False):
         while True:
             input = Webbot2Item()
             for pipelinestep in pipeline: 
-                #print ">>", pipelinestep
                 input = pipelinestep.process_item(input)
                 if input == 'QUIT':
                     break #for loop
@@ -99,12 +106,18 @@ def START_MQ_CONFIRM_WORK_PIPELINE_ST( worker_list, confirm_needed=False):
             except AttributeError: 
                 pass
             msg_processed = last_worker.msgcounter.value
-            if msg_processed % 1000 == 0:
-                print "Processed :", msg_processed
+            if msg_processed % 10 == 0:
+                #print time.utcnow() + timedelta(hours=7), "- Processed :", msg_processed
+                if not silent: 
+                    print '.',
+            if msg_processed % 100 == 0:
+                #print time.utcnow() + timedelta(hours=7), "- Processed :", msg_processed
+                if not silent: 
+                    print "Processed :", "{0:5d}".format(msg_processed), "[", datetime.utcnow() + timedelta(hours=7), "]"
             if input == 'QUIT':
                 break #while loop 
     except KeyboardInterrupt:
-        print "TERMINATING"
+        if not silent: print "TERMINATING"
 
     for pipelinestep in pipeline: 
         pipelinestep.on_quit()
@@ -117,7 +130,7 @@ def START_MQ_CONFIRM_WORK_PIPELINE_ST( worker_list, confirm_needed=False):
     print "Msg      :", msg_processed
     print "Msg/Sec  :", float(int(msg_processed *10 / (duration.total_seconds()))) / 10
 
-def START_MQ_CONFIRM_WORK_PIPELINE_MT( worker_list, confirm_needed=False ):
+def START_MQ_CONFIRM_WORK_PIPELINE_MT( worker_list, confirm_needed=False, client_id='c153', silent=False, ):
 
     _start = datetime.utcnow() + timedelta(hours=7)
     queue_list = []
@@ -131,8 +144,8 @@ def START_MQ_CONFIRM_WORK_PIPELINE_MT( worker_list, confirm_needed=False ):
         last_queue = output_queue
         current_class_workerlist=[]
         for num in range(worker[1]):
-            current_worker = worker[0](input_queue=input_queue, output_queue=output_queue)
-            print current_worker.worker_name
+            current_worker = worker[0](input_queue=input_queue, output_queue=output_queue, name=client_id )
+            if not silent: print current_worker.worker_name
             current_class_workerlist.append(current_worker)
             jobs.append(current_worker.createinstance())
         queue_list.append([worker[0],input_queue,output_queue,current_class_workerlist])
@@ -141,18 +154,18 @@ def START_MQ_CONFIRM_WORK_PIPELINE_MT( worker_list, confirm_needed=False ):
     if confirm_needed:
         myLoopback = QueueWorkerTemplate( input_queue=last_queue, output_queue=first_queue, )
         myLoopback.worker_name = "XX_LoopBack"
-        print myLoopback.worker_name
+        if not silent: print myLoopback.worker_name
         jobs.append(myLoopback.createinstance())
         queue_list.append([QueueWorkerTemplate,last_queue,first_queue,[myLoopback]])
     else:
         myDrainer = QueueWorkerTemplate( input_queue=last_queue, output_queue=None,)
         myDrainer.worker_name = "XX_Drainer"
-        print myDrainer.worker_name
+        if not silent: print myDrainer.worker_name
         jobs.append(myDrainer.createinstance())
         queue_list.append([QueueWorkerTemplate,last_queue,first_queue,[myDrainer]])
     
     for job in jobs:
-        print job
+        #print job
         job.start()
 
     try:
@@ -160,12 +173,14 @@ def START_MQ_CONFIRM_WORK_PIPELINE_MT( worker_list, confirm_needed=False ):
         CONTINUE = True
         while CONTINUE:
             CONTINUE = False
+            output = ''
             for job in jobs:
                 #job.join(0)
                 CONTINUE = CONTINUE | job.is_alive()
+                #output += str(job) + ":" + str(job.is_alive()) + "\n"
             if True:
                 
-                output = ''
+                
                 output+= "===============================================================\n"
                 for row in queue_list:
                     output+= '\t{0:3d} : [{1:5d}] : {2} \n'.format(row[1].qsize(), sum(worker.msgcounter.value for worker in row[3]), row[0].workertype)
@@ -176,18 +191,23 @@ def START_MQ_CONFIRM_WORK_PIPELINE_MT( worker_list, confirm_needed=False ):
                 output+= "total msgs :"+str(msg_processed)+"\n"
                 output+= "===============================================================\n"
 
-                #os.system('cls')
-                #print output
+                if not silent: 
+                    os.system('cls')
+                    print output
+                if silent:
+                    print "total msgs :"+str(msg_processed)
                 time.sleep(1)
 
     except KeyboardInterrupt:
-        print "TERMINATING"
+        if not silent: print "TERMINATING"
+
     try:
         for job in jobs:
             job.terminate()
-    except:
+    except KeyboardInterrupt:
         for job in jobs:
             job.terminate()
+
     _end = datetime.utcnow() + timedelta(hours=7)
     duration = _end - _start
     print "Start    :", _start

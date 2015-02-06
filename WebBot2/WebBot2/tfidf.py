@@ -35,6 +35,7 @@ import math
 import re
 from operator import itemgetter
 from datetime import datetime, timedelta
+from helpers.helperlib import *
 
 DEBUG = False
 
@@ -68,18 +69,23 @@ class TfIdf:
     self.bigram_tf['_allwords'] = 0
     self.trigram_tf = {}    # term : total tf from all docs containing term
     self.trigram_tf['_allwords'] = 0
-    self.term_num_docs = {}         # term : num_docs_containing_term
+
     self.quadgram_tf = {}    # term : total tf from all docs containing term
     self.quadgram_tf['_allwords'] = 0
     self.stopwords = []
     self.idf_default = DEFAULT_IDF
+
     if prefix != '':
         self.prefix=prefix+'_'
     else:
         self.prefix=''
 
+
+    self.keywords_tf = {}
     self.term_num_docs = {}
     self.ngram_num_docs = {}
+
+    self.keywords_tf['_allwords']=0
 
     if corpus_filename:
         files = []
@@ -114,12 +120,17 @@ class TfIdf:
     if stopword_filename:
       stopword_file = open(stopword_filename, "r")
       self.stopwords = [line.strip() for line in stopword_file]
-    
-    #mainstopword_file = open('main_stop.txt', "r")
-    #self.mainstopwords = [line.strip() for line in mainstopword_file]
-    
+  
+  def get_tokens_with_ngram(self,str):
+    final_list = []
+    final_list = final_list + self.get_tokens(str)
+    final_list = final_list + self.get_bigrams(str)
+    final_list = final_list + self.get_trigrams(str)
+    final_list = final_list + self.get_quadgrams(str)
+    return final_list
+
+
   def get_tokens(self, str):
-    #print str.lower()
     """Break a string into tokens, preserving URL tags as an entire token.
 
        This implementation does not preserve case.  
@@ -170,36 +181,92 @@ class TfIdf:
                     result2.append(temp)
 
     return result2
-    
-  def add_input_document(self, input):
-    """Add terms in the specified document to the idf dictionary."""
-    
+  
+  def add_input_document_and_get_keywords(self, input):
     self.num_docs += 1
-    words = set(self.get_tokens(input))
-    for word in words:
-      if word in self.term_num_docs:
-        self.term_num_docs[word] += 1
-      else:
-        self.term_num_docs[word] = 1
-    
-    # for word in words:
-    #   if word in self.term_num_docs:
-    #   self.bigram_tf['_allwords'] += 1
-    #   self.trigram_tf['_allwords'] += 1
-      
-    for word in self.get_bigrams(input):
+
+    monograms = self.get_tokens(input)
+    bigrams = self.get_bigrams(input)
+    trigrams = self.get_trigrams(input)
+    quadgrams = self.get_quadgrams(input)
+
+    for word in set(monograms+bigrams):#+trigrams+quadgrams):
+        if word in self.term_num_docs:
+            self.term_num_docs[word] += 1
+        else:
+            self.term_num_docs[word] = 1
+
+    for word in bigrams:
         if word in self.bigram_tf:
             self.bigram_tf[word] += 1
         else:
             self.bigram_tf[word] = 1
-
-    for word in self.get_trigrams(input):
+    
+    for word in trigrams:
         if word in self.trigram_tf:
             self.trigram_tf[word] += 1
         else:
             self.trigram_tf[word] = 1
 
-    for word in self.get_quadgrams(input):
+    for word in quadgrams:
+        if word in self.quadgram_tf:
+            self.quadgram_tf[word] += 1
+        else:
+            self.quadgram_tf[word] = 1
+
+    tfidf = {}
+    tfidf_mono = {}
+    tfidf_ngram = {}
+    
+    tokens_mono =  monograms
+    tokens_set_mono = set( tokens_mono )
+    for word in tokens_set_mono:
+        mytf = float(tokens_mono.count(word)) / len(tokens_mono)
+        myidf = self.get_idf(word)
+        myrank = mytf * myidf
+        if myrank > 0 and len(word) >= 2 :
+            tfidf_mono[word] = myrank
+
+    tokens_ngram =  bigrams+trigrams+quadgrams
+    tokens_set_ngram = set( tokens_ngram )
+    for word in tokens_set_ngram:
+        mytf = float(tokens_ngram.count(word)) / len(tokens_ngram)
+        myidf = self.get_idf(word)
+        myrank = mytf * myidf
+        if myrank > 0 and len(word) >= 2 :
+            tfidf_ngram[word] = myrank
+
+    return sorted(tfidf_mono.items(), key=itemgetter(1), reverse=True)[0:19]+sorted(tfidf_ngram.items(), key=itemgetter(1), reverse=True)[0:19]
+
+  def add_input_document(self, input):
+    """Add terms in the specified document to the idf dictionary."""
+    
+    self.num_docs += 1
+
+    monograms = self.get_tokens(input)
+    bigrams = self.get_bigrams(input)
+    trigrams = self.get_trigrams(input)
+    quadgrams = self.get_quadgrams(input)
+
+    for word in set(monograms+bigrams+trigrams+quadgrams):
+        if word in self.term_num_docs:
+            self.term_num_docs[word] += 1
+        else:
+            self.term_num_docs[word] = 1
+
+    for word in bigrams:
+        if word in self.bigram_tf:
+            self.bigram_tf[word] += 1
+        else:
+            self.bigram_tf[word] = 1
+    
+    for word in trigrams:
+        if word in self.trigram_tf:
+            self.trigram_tf[word] += 1
+        else:
+            self.trigram_tf[word] = 1
+
+    for word in quadgrams:
         if word in self.quadgram_tf:
             self.quadgram_tf[word] += 1
         else:
@@ -217,7 +284,6 @@ class TfIdf:
     output_file.write(str(self.num_docs) + "\n")
     for term, num_docs in sorted(self.term_num_docs.items(),key=lambda x:x[1],reverse=True):
       output_file.write(term + ": " + str(num_docs) + "\n")
-      #print term.decode('utf-8','ignore').encode('tis-620','ignore')
 
     sorted_terms = sorted(self.term_num_docs.items(), key=itemgetter(1),
                           reverse=True)
@@ -279,7 +345,7 @@ class TfIdf:
        The returned terms are ordered by decreasing tf-idf.
     """
     tfidf = {}
-    tokens = self.get_tokens(curr_doc)
+    tokens = self.get_tokens_with_ngram(curr_doc)
     tokens_set = set(tokens)
     for word in tokens_set:
       # The definition of TF specifies the denominator as the count of terms
@@ -291,6 +357,4 @@ class TfIdf:
         myrank = mytf * myidf
         if myrank > 0 and len(word) >= 2 and tokens.count(word) >= 1:
             tfidf[word] = myrank
-        
-    
     return sorted(tfidf.items(), key=itemgetter(1), reverse=True)

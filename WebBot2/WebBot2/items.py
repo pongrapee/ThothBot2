@@ -92,6 +92,8 @@ class Webbot2Item(Item):
 
     pos_words_list = Field() 
     neg_words_list = Field()
+    ign_words_list = Field()
+    amp_words_list = Field()
 
     pos_amp_val = Field()
     neg_amp_val = Field()

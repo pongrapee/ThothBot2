@@ -6,10 +6,12 @@ import logging
 import os
 import tfidf
 from datetime import *
-
+import sqlite3
+from multiprocessing import Value
 
 DEBUG = False
 THRESHOLD = 0.03
+SECOND_LEVEL_KW = True
 
 class Keyword(object):
     def __init__(self, forum_name):
@@ -19,9 +21,12 @@ class Keyword(object):
         self.stop = 'tfidf_new_stop.txt'
 
         self.corpus_files_list = self.get_corpus_files_list()
+        self.current_run_tfidf = None
+        self.recent_forum_tfidf = None
+        self.global_keyword_list = None
 
-        self.current_run_tfidf = tfidf.TfIdf( corpus_filename = None, stopword_filename = 'c:\\temp\\stop\\tfidf_stop.txt', DEFAULT_IDF = 1.5, prefix=forum_name )
-        self.recent_forum_tfidf = tfidf.TfIdf( corpus_filename = self.corpus_files_list, stopword_filename = 'c:\\temp\\stop\\tfidf_stop.txt', DEFAULT_IDF = 1.5 )
+        self.memdb = None
+        self.counter = Value('i',0)
 
     def get_corpus_files_list(self):
 
@@ -43,18 +48,124 @@ class Keyword(object):
         if self.current_run_tfidf is not None:
             self.current_run_tfidf.save_corpus_to_file( 'c:\\temp\\idf\\'+self.forum_name+"_"+now_str+".txt", 'c:\\temp\\stop\\'+self.forum_name+"_stop_diff_"+now_str+".txt", find_diff_only=True )
 
+        if self.global_keyword_list is not None:
+            output_file = open("c:\\temp\\keywords\\"+self.forum_name+"keywords_tf_"+now_str+".txt", "w")
+            for term, total_tf in sorted(self.global_keyword_list.items(),key=lambda x:x[1],reverse=True):
+                output_file.write(term + ": " + str(total_tf) + "\n")
+
+        if SECOND_LEVEL_KW:
+            output_file = open("c:\\temp\\keywords\\"+self.forum_name+"keywords_secondlevel_"+now_str+".txt", "w")
+            #print "saving 2nd level"
+            cursor = self.memdb.cursor()
+            final_list = sorted(self.global_keyword_list.items(),key=lambda x:x[1],reverse=True)[0:300]
+            for word in final_list:
+                for word2 in final_list:
+                    if word[0].find(word2[0]) != -1:
+                        final_list.remove(word2)
+            for word in final_list:
+                sqlstatement = "select `word1`, `word2`, `link_count` from wordlink where `word1` = {word1} or `word2` = {word1} order by `link_count` desc limit 200;".format(word1=repr(word[0]))
+                cursor.execute( sqlstatement )
+                results = cursor.fetchall()
+                
+                baseword = repr(word[0])
+
+                #Print( unicode(eval(baseword)) )
+                total=0
+                for result in results:
+                    total+=result[2]
+                output_file.write( unicode(eval(baseword))+":"+str(total)+"\n" )
+                for result in results:
+                    if 1:
+                        try:
+                            out1 = "'"+result[0]+"'"
+                            out2 = "'"+result[1]+"'"
+                            if out1 == baseword:  
+                                output_file.write( "\t> "+unicode(eval(out2))+":"+str(result[2])+"\n" )
+                            else:
+                                output_file.write( "\t> "+unicode(eval(out1))+":"+str(result[2])+"\n" )
+                        except:
+                             pass
+            cursor.close()
+                
     def process_item(self, item):
+        if self.current_run_tfidf == None:
+            self.current_run_tfidf = tfidf.TfIdf( corpus_filename = None, stopword_filename = 'c:\\temp\\tfidf_stop.txt', DEFAULT_IDF = 1.5, prefix=self.forum_name )
+        if self.recent_forum_tfidf == None:
+            self.recent_forum_tfidf = tfidf.TfIdf( corpus_filename = self.corpus_files_list, stopword_filename = 'c:\\temp\\tfidf_stop.txt', DEFAULT_IDF = 1.5, prefix=self.forum_name )
+        if self.global_keyword_list == None:
+            self.global_keyword_list = {}
+
+
         self.current_run_tfidf.add_input_document(item['text_segmented'])
-        self.recent_forum_tfidf.add_input_document(item['text_segmented'])
+        keywords = self.recent_forum_tfidf.add_input_document_and_get_keywords(item['text_segmented'])
         
-        keywords = self.recent_forum_tfidf.get_doc_keywords(item['text_segmented'])
         keywordlist = []
-        for key, value in keywords[0:14]:
+        for key, value in keywords[0:59]:
             if value >= THRESHOLD:
                 keywordlist.append( key )
         logging.debug("keyword :")
         for keyword in keywordlist:
             logging.debug(keyword.decode('utf-8','ignore').encode('tis-620','ignore'))
+            if keyword in self.global_keyword_list:
+                self.global_keyword_list[keyword] += 1
+            else:
+                self.global_keyword_list[keyword] = 1
+
+        if SECOND_LEVEL_KW:
+            if self.memdb == None:
+                self.memdb = sqlite3.connect(":memory:")
+                cursor = self.memdb.cursor()
+                sqlstatement = "CREATE TABLE IF NOT EXISTS wordlink( \
+                                    `word_pair` VARCHAR(200) PRIMARY KEY NOT NULL,\
+                                    `word1` VARCHAR(100) NOT NULL,\
+                                    `word2` VARCHAR(100) NOT NULL,\
+                                    `link_count` INTEGER DEFAULT '0');"
+                cursor.execute( sqlstatement )
+                sqlstatement = "Delete from wordlink;"
+                cursor.execute( sqlstatement )
+                self.memdb.commit()
+                cursor.close()
+
+            cursor = self.memdb.cursor()
+            for keyword in keywordlist:
+                if len(keyword) <= 1:
+                    continue
+                for keyword2 in keywordlist:
+                    if len(keyword2) <= 1:
+                        continue
+                    if keyword != keyword2 and (keyword.find(keyword2)==-1) and (keyword2.find(keyword)==-1) :
+                        if keyword < keyword2:
+                            word1 = keyword
+                            word2 = keyword2
+                        else:
+                            word2 = keyword
+                            word1 = keyword2
+                        
+                        if DEBUG:
+                            PrintNoNewLine(word1)
+                            PrintNoNewLine("->")
+                            Print(word2)
+
+                        sqlstatement = "insert or ignore into wordlink (`word_pair`, `word1`, `word2`) values ( {word3}, {word1}, {word2});".format(
+                            word1=repr(word1),
+                            word2=repr(word2),
+                            word3=repr(word1+word2))
+                        
+                        cursor.execute( sqlstatement )
+                        sqlstatement = "update wordlink set `link_count`=`link_count`+1 where `word_pair`={word3};".format(
+                            word1=repr(word1),
+                            word2=repr(word2),
+                            word3=repr(word1+word2))
+                        cursor.execute( sqlstatement )
+            self.memdb.commit()       
+            cursor.close()
+            self.counter.value += 1
+            if self.counter.value % 1000 == 0:
+                cursor = self.memdb.cursor()
+                sqlstatement = "delete from wordlink where link_count <= 20;"
+                cursor.execute( sqlstatement )
+                self.memdb.commit()
+                cursor.close()
         item['keywordlist'] = ' '.join(keywordlist)
         if DEBUG:
             Print( item )

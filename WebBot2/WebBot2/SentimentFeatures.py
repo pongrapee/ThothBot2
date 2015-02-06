@@ -4,6 +4,7 @@
 from helpers.helperlib import *
 import logging
 from items import Webbot2Item
+from time import *
 
 DEBUG = False
 
@@ -98,11 +99,23 @@ class SentimentFeatures(object):
         p_p_p_word = ''
         item['pos_words_list'] = ''
         item['neg_words_list'] = '' 
+        item['ign_words_list'] = '' 
+        item['amp_words_list'] = '' 
         for word in words:
             j-=1
 
             for row in self.emo_word_list:
-                #positive
+                #ignore words
+                if  ( row[TYPE] == 'ign' ):
+                    if word == row[WORD]:
+                        item['ign_words_list'] = item['ign_words_list']+word+' '
+
+                #amplifier words
+                if  ( row[TYPE] == 'amp' ):
+                    if word == row[WORD]:
+                        item['amp_words_list'] = item['amp_words_list']+word+' '
+
+                #positive emo words
                 if  ( row[TYPE] == 'emo' and row[VALUE] > 0 and (p_word != 'ไม่' and p_p_word != 'ไม่' and p_p_p_word != 'ไม่')) or (row[TYPE] == 'emo' and row[VALUE] < 0 and (p_word == 'ไม่' or p_p_word == 'ไม่' or p_p_p_word == 'ไม่')):
                         
                     if word == row[WORD]:
@@ -185,6 +198,8 @@ class SentimentFeatures(object):
                         if (j<150):
                             pos_emo_word_count_l_150+=1
                             all_emo_word_count_l_150+=1
+
+                #negative emo words
                 if  ( row[TYPE] == 'emo' and row[VALUE] < 0 and (p_word != 'ไม่' and p_p_word != 'ไม่' and p_p_p_word != 'ไม่')) or (row[TYPE] == 'emo' and row[VALUE] > 0 and (p_word == 'ไม่' or p_p_word == 'ไม่' or p_p_p_word == 'ไม่')):
                     if word == row[WORD]:
                         if p_word == 'ไม่':

@@ -7,6 +7,8 @@ from QueueWorkerTemplate import *
 import pika
 import MySQLdb
 
+GETTER_MULTI = 10
+
 class MyQueueGetter(QueueWorkerTemplate):
     workertype = 'MyQueueGetter'
     def __init__(self, input_queue=None, output_queue=None, name='MyQueueGetter', id=0, hostname='27.254.142.36', username=u'thothoffice', password=u'thothoffice!', queue_name=u'NickQueue' ):
@@ -40,8 +42,8 @@ class MyQueueGetter(QueueWorkerTemplate):
                     if output is None: 
                         continue
                     self.output_queue.put( output )
-            except pika.exceptions.ConnectionClosed:
-                assert(False)
+            except pika.exceptions.ConnectionClosed as e:
+                print "ERROR :", e
                 #TODO: handle disconnect
         self.on_quit()
 
@@ -113,8 +115,8 @@ class MyQueuePutter(QueueWorkerTemplate):
                         break
                     output = self.process_item(input)
                     self.output_queue.put(output) 
-            except pika.exceptions.ConnectionClosed:
-                assert(False)
+            except pika.exceptions.ConnectionClosed as e:
+                print "ERROR :", e
                 #TODO: handle disconnect
             if input == 'QUIT':
                 break
@@ -180,7 +182,8 @@ class MySQLGetter(QueueWorkerTemplate):
         self.passwd = passwd
         self.db = db
         if SQLSTATEMENT == '':
-            self.SQLSTATEMENT = "SELECT `post_id`, `subject_name` as `subject`, `post_date` as `datetime`, `body` as `text`, `type`, `author`, `group`, `facebook_page_name` as `page_id`, `likes`, `shares`, `mood` as `mood_original` FROM facebook_c149 WHERE `post_id` {0} AND `post_date` > '2015-01-01' ORDER BY `post_id` DESC LIMIT 100;"
+            #self.SQLSTATEMENT = SQLSTATEMENT="SELECT `post_id`, `subject_name` as `subject`, `post_date` as `datetime`, `body` as `text`, `type`, `author`, `group`, `facebook_page_name` as `page_id`, `likes`, `shares`, `mood` as `mood_original` FROM facebook_"+str(self.name)+" WHERE `post_id` {0} AND `post_date` >= '2014-12-01' AND `post_date` <= '2015-01-31' ORDER BY `post_id` DESC LIMIT 1000;"
+            self.SQLSTATEMENT = SQLSTATEMENT="SELECT `post_id`, `subject_name` as `subject`, `post_date` as `datetime`, `body` as `text`, `type`, `author`, `group`, `facebook_page_name` as `page_id`, `likes`, `shares`, `mood` as `mood_original` FROM facebook_"+str(self.name)+" WHERE `post_id` {0} AND `post_date` >= '2015-01-01' AND `post_date` <= '2015-01-05' AND `subject_id` = '931' ORDER BY `post_id` DESC LIMIT 1000;"
         else:
             self.SQLSTATEMENT = SQLSTATEMENT
         self.execute_sql = True
@@ -204,12 +207,7 @@ class MySQLGetter(QueueWorkerTemplate):
         if item is None:
             assert False
         while self.more_data:
-            if self.execute_sql == True:
-                if self.minidprocessed == False: #initial run
-                    post_id_filter = ">'0'"
-                else:
-                    post_id_filter = "<'"+str(self.minidprocessed)+"'"
-
+            if self.sqldb == None:
                 self.sqldb = MySQLdb.connect(   host=self.host,
                                                 user=self.user,
                                                 passwd=self.passwd,
@@ -217,12 +215,36 @@ class MySQLGetter(QueueWorkerTemplate):
                                                 use_unicode=True,
                                                 charset="utf8",
                                             )
+            if self.cursor == None:
                 self.cursor = self.sqldb.cursor()
-                #print self.SQLSTATEMENT.format(post_id_filter)
-                self.cursor.execute(self.SQLSTATEMENT.format(post_id_filter))
-                self.execute_sql = False
-                self.at_least_some_data = False
-                
+
+            if self.execute_sql == True:
+                if self.minidprocessed == False: #initial run
+                    post_id_filter = ">'0'"
+                else:
+                    post_id_filter = "<'"+str(self.minidprocessed)+"'"
+
+                try:
+                    #print self.SQLSTATEMENT.format(post_id_filter)
+                    self.cursor.execute(self.SQLSTATEMENT.format(post_id_filter))
+                    self.execute_sql = False
+                    self.at_least_some_data = False
+                except MySQLdb.Error as e:
+                    #self.sqldb.rollback() #rollback transaction here
+                    print "SQL connection lost"
+                    time.sleep(50/1000)
+
+                    if self.cursor is not None:
+                        self.cursor.close()
+                        self.cursor = None
+                    if self.sqldb is not None:
+                        self.sqldb.close()
+                        self.sqldb = None
+                    continue
+
+                finally:
+                    pass
+      
             row = self.cursor.fetchone()
 
             if row is not None:
@@ -238,12 +260,34 @@ class MySQLGetter(QueueWorkerTemplate):
                 if self.at_least_some_data:
                     self.execute_sql = True
                     self.at_least_some_data = False
+                    
+                    try:
+                        if self.cursor is not None:
+                            self.cursor.close()
+                            self.cursor = None
+                        if self.sqldb is not None:
+                            self.sqldb.close()
+                            self.sqldb = None
+                    except Exception as e:
+                        print "ERROR :", e
+                        pass
+                
                     continue
+                
                 else:
                     item = 'QUIT'
                     self.more_data = False
+                    try:
+                        if self.cursor is not None:
+                            self.cursor.close()
+                            self.cursor = None
+                        if self.sqldb is not None:
+                            self.sqldb.close()
+                            self.sqldb = None
+                    except Exception as e:
+                        print "ERROR :", e
+                        pass
                     break
-
         return item
 
 class MyCSVPutter(QueueWorkerTemplate):
@@ -257,7 +301,7 @@ class MyCSVPutter(QueueWorkerTemplate):
 
     def process_item( self, item ):  
         #Print( item )
-        
+    
         if self.file is None:
             self.file = open('c:\\temp\\csv\\'+self.worker_name+'_output.tsv', "w")
         if item is not None:
@@ -274,5 +318,34 @@ class MyCSVPutter(QueueWorkerTemplate):
                     self.file.write(  str(' ') )
             self.file.write("\n")
         self.msgcounter.value+=1
+        return item
+
+    def on_quit( self ):
+        try:
+            if self.cursor is not None:
+                self.cursor.close()
+            if self.sqldb is not None:
+                self.sqldb.close()
+        except Exception as e:
+            print "ERROR :", e
+            pass
+
+class MyDebugFilePutter(QueueWorkerTemplate):
+    workertype = 'MyDebugFilePutter'
+    def __init__(self, input_queue=None, output_queue=None, name='MyDebugFilePutter', id=0, hostname='27.254.142.36', username=u'thothoffice', password=u'thothoffice!', queue_name=u'NickQueue' ):
+
+        super(MyDebugFilePutter,self).__init__(input_queue=input_queue, output_queue=output_queue, name=name, id=id)
+        self.file = None
+
+    def process_item( self, item ):  
+        #Print( item )
         
+        if self.file is None:
+            self.file = open('c:\\temp\\output\\'+self.worker_name+'_output.txt', "w")
+        if item is not None:
+            for attr in sorted(item):
+                if item[attr] is not None:
+                    self.file.write( str(attr) + " : " + str(item[attr]) + "\n")
+            self.file.write( "===============================================\n\n" )
+        self.msgcounter.value+=1
         return item

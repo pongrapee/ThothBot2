@@ -7,7 +7,6 @@ import json
 from multiprocessing import Process, Queue, Value, Lock
 import time
 import os
-import time
 from datetime import datetime, timedelta
 
 from items import Webbot2Item
@@ -15,7 +14,7 @@ from items import Webbot2Item
 logging.basicConfig(level=logging.INFO)
 logging.getLogger('pika').setLevel(logging.INFO)
 
-MAX_QUEUE_SIZE = 10
+MAX_QUEUE_SIZE = 50
 PRE_FETCH_SIZE = 20
 
 class QueueWorkerTemplate( object ):

@@ -6,7 +6,10 @@ from QueueWorkerTemplate import *
 from TextSegmentation import *
 from Keyword import *
 from SentimentFeatures import *
+from kucut import SimpleKucutWrapper as KUCut
+
 from pipelines import *
+
 import time
 
 class MyTextSegmentation(QueueWorkerTemplate):
@@ -18,10 +21,43 @@ class MyTextSegmentation(QueueWorkerTemplate):
     def process_item( self, item ):
         if self.myTextSegmentation == None:
             self.myTextSegmentation = TextSegmentation()
-        item = self.myTextSegmentation.process_item( item=item )
+        item = self.myTextSegmentation.process_item( item=clean_text(item) )
         try:
             logging.debug(self.worker_name+' :: item[text] : '+item['text'].decode('utf-8','ignore').encode('tis-620','ignore'))
             logging.debug(self.worker_name+' :: item[text_segmented] : '+item['text_segmented'].decode('utf-8','ignore').encode('tis-620','ignore'))
+        except KeyError:
+            pass
+        self.msgcounter.value+=1
+        return item
+
+class MyTextSegmentationKUCUT(QueueWorkerTemplate):
+    workertype = 'MyTextSegmentationKUCUT'
+    def __init__(self, input_queue=None, output_queue=None, name='MyTextSegmentationKUCUT', id=0):
+        super(MyTextSegmentationKUCUT,self).__init__(input_queue=input_queue, output_queue=output_queue, name=name, id=id)
+        self.myTextSegmentationKUCUT = None
+        
+    def process_item( self, item ):
+        if self.myTextSegmentationKUCUT == None:
+            self.myTextSegmentationKUCUT = KUCut()
+        input = clean_text(item['text'])
+        output = self.myTextSegmentationKUCUT.tokenize([input])
+        out2 = output[0][0]
+        
+        for word in out2:
+            if word == '_':
+                out2.remove(word)
+
+        result = ' '.join(out2)
+        item['text_segmented'] = result
+
+        if DEBUG:
+            Print( item['text'] )
+            Print( item['text_segmented'] )
+        
+        try:
+            #logging.debug(self.worker_name+' :: item[text] : '+item['text'].decode('utf-8','ignore').encode('tis-620','ignore'))
+            #logging.debug(self.worker_name+' :: item[text_segmented] : '+item['text_segmented'].decode('utf-8','ignore').encode('tis-620','ignore'))
+            pass
         except KeyError:
             pass
         self.msgcounter.value+=1
@@ -131,16 +167,21 @@ def START_MQ_CONFIRM_WORK_PIPELINE_ST( worker_list=[], confirm_needed=False, cli
     print "Msg/Sec  :", float(int(msg_processed *10 / (duration.total_seconds()))) / 10
 
 def START_MQ_CONFIRM_WORK_PIPELINE_MT( worker_list, confirm_needed=False, client_id='c153', silent=False, ):
-
+    ######
+    #queues = []
     _start = datetime.utcnow() + timedelta(hours=7)
     queue_list = []
     first_queue = Queue()
     previous_queue = first_queue
+    ######
+    #queues.append(first_queue)
     last_queue = None
     jobs=[]
     for worker in worker_list:
         input_queue = previous_queue
         output_queue = Queue()
+        ######
+        #queues.append(output_queue)
         last_queue = output_queue
         current_class_workerlist=[]
         for num in range(worker[1]):
@@ -158,11 +199,11 @@ def START_MQ_CONFIRM_WORK_PIPELINE_MT( worker_list, confirm_needed=False, client
         jobs.append(myLoopback.createinstance())
         queue_list.append([QueueWorkerTemplate,last_queue,first_queue,[myLoopback]])
     else:
-        myDrainer = QueueWorkerTemplate( input_queue=last_queue, output_queue=None,)
-        myDrainer.worker_name = "XX_Drainer"
-        if not silent: print myDrainer.worker_name
-        jobs.append(myDrainer.createinstance())
-        queue_list.append([QueueWorkerTemplate,last_queue,first_queue,[myDrainer]])
+        mySink = QueueWorkerTemplate( input_queue=last_queue, output_queue=None,)
+        mySink.worker_name = "XX_Sink"
+        if not silent: print mySink.worker_name
+        jobs.append(mySink.createinstance())
+        queue_list.append([QueueWorkerTemplate,last_queue,first_queue,[mySink]])
     
     for job in jobs:
         #print job
@@ -175,28 +216,28 @@ def START_MQ_CONFIRM_WORK_PIPELINE_MT( worker_list, confirm_needed=False, client
             CONTINUE = False
             output = ''
             for job in jobs:
-                #job.join(0)
                 CONTINUE = CONTINUE | job.is_alive()
-                #output += str(job) + ":" + str(job.is_alive()) + "\n"
-            if True:
-                
-                
-                output+= "===============================================================\n"
-                for row in queue_list:
-                    output+= '\t{0:3d} : [{1:5d}] : {2} \n'.format(row[1].qsize(), sum(worker.msgcounter.value for worker in row[3]), row[0].workertype)
-                    for worker in row[3]:
-                        output+= '\t\t{0:5d} : {1}\n'.format(worker.msgcounter.value, worker.worker_name)
-                output+= "--------------------------------------------------------------\n"
-                msg_processed = sum( worker.msgcounter.value for worker in queue_list[len(queue_list)-1][3] )
-                output+= "total msgs :"+str(msg_processed)+"\n"
-                output+= "===============================================================\n"
+                output += str(job) + ":" + str(job.is_alive()) + "\n"
+        
+            output+= "===============================================================\n"
+            for row in queue_list:
+                output+= '\t{0:3d} : [{1:5d}] : {2} \n'.format(row[1].qsize(), sum(worker.msgcounter.value for worker in row[3]), row[0].workertype)
+                for worker in row[3]:
+                    output+= '\t\t{0:5d} : {1}\n'.format(worker.msgcounter.value, worker.worker_name)
+            output+= "--------------------------------------------------------------\n"
+            msg_processed = sum( worker.msgcounter.value for worker in queue_list[len(queue_list)-1][3] )
+            _now = datetime.utcnow() + timedelta(hours=7)
+            elaspedtime = _now - _start
+            msgpersec = float(int(msg_processed *10 / (elaspedtime.total_seconds()))) / 10
+            output+= "total msgs :"+str(msg_processed)+" [ "+str(msgpersec)+"/s ]"+"\n"
+            output+= "===============================================================\n"
 
-                if not silent: 
-                    os.system('cls')
-                    print output
-                if silent:
-                    print "total msgs :"+str(msg_processed)
-                time.sleep(1)
+            if not silent: 
+                #os.system('cls')
+                print output
+            if silent:
+                print "total msgs :"+str(msg_processed)+" [ "+str(msgpersec)+"/s ]"
+            time.sleep(1)
 
     except KeyboardInterrupt:
         if not silent: print "TERMINATING"
@@ -207,6 +248,14 @@ def START_MQ_CONFIRM_WORK_PIPELINE_MT( worker_list, confirm_needed=False, client
     except KeyboardInterrupt:
         for job in jobs:
             job.terminate()
+
+    ########
+    # for q in queues:
+    #     print "========="
+    #     print q
+    #     while not q.empty():
+    #         Print(q.get())
+    #         print "-------"
 
     _end = datetime.utcnow() + timedelta(hours=7)
     duration = _end - _start

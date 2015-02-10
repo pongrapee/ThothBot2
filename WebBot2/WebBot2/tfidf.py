@@ -227,7 +227,7 @@ class TfIdf:
         if myrank > 0 and len(word) >= 2 :
             tfidf_mono[word] = myrank
 
-    tokens_ngram =  bigrams+trigrams+quadgrams
+    tokens_ngram =  bigrams#+trigrams+quadgrams
     tokens_set_ngram = set( tokens_ngram )
     for word in tokens_set_ngram:
         mytf = float(tokens_ngram.count(word)) / len(tokens_ngram)
@@ -283,7 +283,7 @@ class TfIdf:
 
     output_file.write(str(self.num_docs) + "\n")
     for term, num_docs in sorted(self.term_num_docs.items(),key=lambda x:x[1],reverse=True):
-      output_file.write(term + ": " + str(num_docs) + "\n")
+      output_file.write(term.replace(':',"") + ": " + str(num_docs) + "\n")
 
     sorted_terms = sorted(self.term_num_docs.items(), key=itemgetter(1),
                           reverse=True)

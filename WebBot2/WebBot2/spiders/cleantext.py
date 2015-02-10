@@ -46,6 +46,7 @@ def clean_text(text):
         (u'หรือ','หรือ '), 
         (u'และ','และ '), 
         ("`"," "),
+        ('...',' '),
     ]
 
     #replace all with mapping

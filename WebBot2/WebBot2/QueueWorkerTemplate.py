@@ -45,14 +45,15 @@ class QueueWorkerTemplate( object ):
         while True:
             input = self.input_queue.get()
             if input == 'QUIT':
-                self.send_to_next_queue('QUIT')
-                self.input_queue.put('QUIT')
+                time.sleep(5)
+                if self.output_queue: self.output_queue.put('QUIT')
+                if self.input_queue: self.input_queue.put('QUIT')
                 break
             output = self.process_item(input)
-            if output == 'QUIT':
-                self.send_to_next_queue('QUIT')
-                self.input_queue.put('QUIT')
-                break
+            # if output == 'QUIT':
+            #     if self.output_queue: self.output_queue.put('QUIT')
+            #     if self.input_queue: self.input_queue.put('QUIT')
+            #     break
             self.send_to_next_queue(output)
         self.on_quit()
         

@@ -110,8 +110,9 @@ class MyQueuePutter(QueueWorkerTemplate):
                 while True:
                     input = self.input_queue.get()
                     if input == 'QUIT':
-                        self.send_to_next_queue('QUIT')
-                        self.input_queue.put('QUIT')
+                        time.sleep(5)
+                        if self.output_queue: self.output_queue.put('QUIT')
+                        if self.input_queue: self.input_queue.put('QUIT')
                         break
                     output = self.process_item(input)
                     self.output_queue.put(output) 
@@ -183,7 +184,7 @@ class MySQLGetter(QueueWorkerTemplate):
         self.db = db
         if SQLSTATEMENT == '':
             #self.SQLSTATEMENT = SQLSTATEMENT="SELECT `post_id`, `subject_name` as `subject`, `post_date` as `datetime`, `body` as `text`, `type`, `author`, `group`, `facebook_page_name` as `page_id`, `likes`, `shares`, `mood` as `mood_original` FROM facebook_"+str(self.name)+" WHERE `post_id` {0} AND `post_date` >= '2014-12-01' AND `post_date` <= '2015-01-31' ORDER BY `post_id` DESC LIMIT 1000;"
-            self.SQLSTATEMENT = SQLSTATEMENT="SELECT `post_id`, `subject_name` as `subject`, `post_date` as `datetime`, `body` as `text`, `type`, `author`, `group`, `facebook_page_name` as `page_id`, `likes`, `shares`, `mood` as `mood_original` FROM facebook_"+str(self.name)+" WHERE `post_id` {0} AND `post_date` >= '2015-01-01' AND `post_date` <= '2015-01-05' AND `subject_id` = '931' ORDER BY `post_id` DESC LIMIT 1000;"
+            self.SQLSTATEMENT = SQLSTATEMENT="SELECT `post_id`, `subject_name` as `subject`, `post_date` as `datetime`, `body` as `text`, `type`, `author`, `group`, `facebook_page_name` as `page_id`, `likes`, `shares`, `mood` as `mood_original` FROM facebook_"+str(self.name)+" WHERE `post_id` {0} AND `post_date` >= '2014-12-01' AND `post_date` <= '2014-12-31' AND `subject_id` = '931' ORDER BY `post_id` DESC LIMIT 1000;"
         else:
             self.SQLSTATEMENT = SQLSTATEMENT
         self.execute_sql = True
@@ -198,10 +199,12 @@ class MySQLGetter(QueueWorkerTemplate):
             input = Webbot2Item()
             output = self.process_item(input)
             if output == 'QUIT':
-                self.send_to_next_queue('QUIT')
-                self.input_queue.put('QUIT')
+                time.sleep(5)
+                if self.output_queue: self.output_queue.put('QUIT')
+                #if self.input_queue: self.input_queue.put('QUIT')
                 break
             self.send_to_next_queue(output)
+        self.on_quit()
                 
     def process_item( self, item ):
         if item is None:

@@ -8,6 +8,7 @@ import tfidf
 from datetime import *
 import sqlite3
 from multiprocessing import Value
+import md5
 
 DEBUG = False
 THRESHOLD = 0.03
@@ -63,26 +64,34 @@ class Keyword(object):
                     if word[0].find(word2[0]) != -1:
                         final_list.remove(word2)
             for word in final_list:
-                sqlstatement = "select `word1`, `word2`, `link_count` from wordlink where `word1` = {word1} or `word2` = {word1} order by `link_count` desc limit 200;".format(word1=repr(word[0]))
+                sqlstatement = "select `word1`, `word2`, `link_count` from wordlink where `word1` = '{word1}' or `word2` = '{word1}' order by `link_count` desc limit 200;".format(word1=word[0])
+
                 cursor.execute( sqlstatement )
                 results = cursor.fetchall()
                 
-                baseword = repr(word[0])
-
-                #Print( unicode(eval(baseword)) )
+                baseword = word[0]
                 total=0
-                for result in results:
-                    total+=result[2]
-                output_file.write( unicode(eval(baseword))+":"+str(total)+"\n" )
+                # for result in results:
+                #     total+=result[2]
+                total = self.global_keyword_list[baseword]
+                output_file.write( baseword+":"+str(total)+"\n" )
                 for result in results:
                     if 1:
                         try:
-                            out1 = "'"+result[0]+"'"
-                            out2 = "'"+result[1]+"'"
+                            out1 = result[0]
+                            out2 = result[1]
+                            # Print("======") 
+                            # Print(baseword)
+                            # Print( out1 )
+                            # Print( out2 )
+                            # Print("------") 
                             if out1 == baseword:  
-                                output_file.write( "\t> "+unicode(eval(out2))+":"+str(result[2])+"\n" )
+                                output_file.write( "\t> "+out2+":"+str(result[2])+"\n" )
+                                #Print(out2)
                             else:
-                                output_file.write( "\t> "+unicode(eval(out1))+":"+str(result[2])+"\n" )
+                                output_file.write( "\t> "+out1+":"+str(result[2])+"\n" )
+                                #Print(out1)
+                            #Print("------") 
                         except:
                              pass
             cursor.close()
@@ -102,7 +111,7 @@ class Keyword(object):
         keywordlist = []
         for key, value in keywords[0:59]:
             if value >= THRESHOLD:
-                keywordlist.append( key )
+                keywordlist.append( key.replace("'","").replace("`","").replace('"',"") )
         logging.debug("keyword :")
         for keyword in keywordlist:
             logging.debug(keyword.decode('utf-8','ignore').encode('tis-620','ignore'))
@@ -145,17 +154,17 @@ class Keyword(object):
                             PrintNoNewLine(word1)
                             PrintNoNewLine("->")
                             Print(word2)
-
-                        sqlstatement = "insert or ignore into wordlink (`word_pair`, `word1`, `word2`) values ( {word3}, {word1}, {word2});".format(
-                            word1=repr(word1),
-                            word2=repr(word2),
-                            word3=repr(word1+word2))
+                        digest = md5.new((word1+word2)).hexdigest()
+                        sqlstatement = "insert or ignore into wordlink (`word_pair`, `word1`, `word2`) values ( '{word3}', '{word1}', '{word2}');".format(
+                            word1=word1,
+                            word2=word2,
+                            word3=digest,
+                            )
                         
                         cursor.execute( sqlstatement )
-                        sqlstatement = "update wordlink set `link_count`=`link_count`+1 where `word_pair`={word3};".format(
-                            word1=repr(word1),
-                            word2=repr(word2),
-                            word3=repr(word1+word2))
+                        sqlstatement = "update wordlink set `link_count`=`link_count`+1 where `word_pair`='{word3}';".format(
+                            word3=digest,
+                            )
                         cursor.execute( sqlstatement )
             self.memdb.commit()       
             cursor.close()

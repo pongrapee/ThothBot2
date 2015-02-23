@@ -113,3 +113,5 @@ class Webbot2Item(Item):
 
     mood_original = Field()
 
+    tags_list = Field()
+

@@ -21,6 +21,6 @@ if __name__ == "__main__":
             
         ]
 
-        START_MQ_CONFIRM_WORK_PIPELINE_MT( worker_list=workpipeline, confirm_needed=False, client_id='c'+str(client_id), silent=False )
+        #START_MQ_CONFIRM_WORK_PIPELINE_MT( worker_list=workpipeline, confirm_needed=False, client_id='c'+str(client_id), silent=True )
 
-        #START_MQ_CONFIRM_WORK_PIPELINE_ST( worker_list=workpipeline, confirm_needed=False, client_id='c'+str(client_id), silent=False )
+        START_MQ_CONFIRM_WORK_PIPELINE_ST( worker_list=workpipeline, confirm_needed=False, client_id='c'+str(client_id), silent=False )

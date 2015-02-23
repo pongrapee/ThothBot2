@@ -111,7 +111,10 @@ class TfIdf:
             for line in corpus_file:
                 tokens = line.rpartition(":")
                 term = tokens[0].strip()
-                frequency = int(tokens[2].strip())
+                try:
+                    frequency = int(tokens[2].strip())
+                except:
+                    frequency = 0
                 if term in self.term_num_docs:
                     self.term_num_docs[term] = self.term_num_docs[term] + frequency
                 else:
@@ -227,7 +230,7 @@ class TfIdf:
         if myrank > 0 and len(word) >= 2 :
             tfidf_mono[word] = myrank
 
-    tokens_ngram =  bigrams#+trigrams+quadgrams
+    tokens_ngram =  bigrams+trigrams+quadgrams
     tokens_set_ngram = set( tokens_ngram )
     for word in tokens_set_ngram:
         mytf = float(tokens_ngram.count(word)) / len(tokens_ngram)
@@ -236,7 +239,9 @@ class TfIdf:
         if myrank > 0 and len(word) >= 2 :
             tfidf_ngram[word] = myrank
 
-    return sorted(tfidf_mono.items(), key=itemgetter(1), reverse=True)[0:19]+sorted(tfidf_ngram.items(), key=itemgetter(1), reverse=True)[0:19]
+    num_kw_to_return = int(max(10,int(0.35*len(tokens_set_mono))))
+
+    return sorted(tfidf_mono.items(), key=itemgetter(1), reverse=True)[0:num_kw_to_return] + sorted(tfidf_ngram.items(), key=itemgetter(1), reverse=True)[0:int(num_kw_to_return)]
 
   def add_input_document(self, input):
     """Add terms in the specified document to the idf dictionary."""

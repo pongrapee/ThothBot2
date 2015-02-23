@@ -111,7 +111,25 @@ class Keyword(object):
         keywordlist = []
         for key, value in keywords[0:59]:
             if value >= THRESHOLD:
-                keywordlist.append( key.replace("'","").replace("`","").replace('"',"") )
+                keywordlist.append( key )
+        
+        list1 = []
+        list2 = []
+        for word1 in keywordlist:
+            list1.append(word1)
+            list2.append(word1)
+
+        for word1 in list1:
+            #PrintWithLabel("checking",word1)
+            for word2 in list2:
+                if word1 != word2:
+                    if word1.find(word2) != -1:
+                        try:
+                            #PrintWithLabel("Remove",word1)
+                            keywordlist.remove(word1)
+                        except ValueError:
+                            pass
+
         logging.debug("keyword :")
         for keyword in keywordlist:
             logging.debug(keyword.decode('utf-8','ignore').encode('tis-620','ignore'))
@@ -171,10 +189,11 @@ class Keyword(object):
             self.counter.value += 1
             if self.counter.value % 1000 == 0:
                 cursor = self.memdb.cursor()
-                sqlstatement = "delete from wordlink where link_count <= 20;"
+                sqlstatement = "delete from wordlink where link_count <= 5;"
                 cursor.execute( sqlstatement )
                 self.memdb.commit()
                 cursor.close()
+        keywordlist=sorted(keywordlist)
         item['keywordlist'] = ' '.join(keywordlist)
         if DEBUG:
             Print( item )

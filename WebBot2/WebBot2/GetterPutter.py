@@ -184,7 +184,7 @@ class MySQLGetter(QueueWorkerTemplate):
         self.db = db
         if SQLSTATEMENT == '':
             #self.SQLSTATEMENT = SQLSTATEMENT="SELECT `post_id`, `subject_name` as `subject`, `post_date` as `datetime`, `body` as `text`, `type`, `author`, `group`, `facebook_page_name` as `page_id`, `likes`, `shares`, `mood` as `mood_original` FROM facebook_"+str(self.name)+" WHERE `post_id` {0} AND `post_date` >= '2014-12-01' AND `post_date` <= '2015-01-31' ORDER BY `post_id` DESC LIMIT 1000;"
-            self.SQLSTATEMENT = SQLSTATEMENT="SELECT `post_id`, `subject_name` as `subject`, `post_date` as `datetime`, `body` as `text`, `type`, `author`, `group`, `facebook_page_name` as `page_id`, `likes`, `shares`, `mood` as `mood_original` FROM facebook_"+str(self.name)+" WHERE `post_id` {0} AND `post_date` >= '2014-12-01' AND `post_date` <= '2014-12-31' AND `subject_id` = '931' ORDER BY `post_id` DESC LIMIT 1000;"
+            self.SQLSTATEMENT = SQLSTATEMENT="SELECT `post_id`, `subject_name` as `subject`, `post_date` as `datetime`, `body` as `text`, `type`, `author`, `group`, `facebook_page_name` as `page_id`, `likes`, `shares`, `mood` as `mood_original` FROM facebook_"+str(self.name)+" WHERE `post_id` {0} AND `post_date` >= '2015-02-01' AND `post_date` <= '2015-02-03' AND `subject_id` = '931' ORDER BY `post_id` DESC LIMIT 1000;"
         else:
             self.SQLSTATEMENT = SQLSTATEMENT
         self.execute_sql = True
@@ -348,7 +348,14 @@ class MyDebugFilePutter(QueueWorkerTemplate):
         if item is not None:
             for attr in sorted(item):
                 if item[attr] is not None:
-                    self.file.write( str(attr) + " : " + str(item[attr]) + "\n")
+                    if attr == 'tags_list':
+                        self.file.write( "tags_list :\n")
+                        for tag in item[attr]:
+                            self.file.write( "\t"+str(tag)+"\n")
+                            for token in item[attr][tag]:
+                                self.file.write( "\t\t"+str(token)+"\n")        
+                    else:
+                        self.file.write( str(attr) + " : " + str(item[attr]) + "\n")
             self.file.write( "===============================================\n\n" )
         self.msgcounter.value+=1
         return item

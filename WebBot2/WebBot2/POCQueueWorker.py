@@ -40,26 +40,47 @@ class MyTextSegmentationKUCUT(QueueWorkerTemplate):
         if self.myTextSegmentationKUCUT == None:
             self.myTextSegmentationKUCUT = KUCut()
         input = clean_text(item['text'])
-        output = self.myTextSegmentationKUCUT.tokenize([input])
-        out2 = output[0][0]
-        
-        for word in out2:
-            if word == '_':
-                out2.remove(word)
+        try:
+            output,tags_list = self.myTextSegmentationKUCUT.tokenize([input])
+            out2 = output[0][0]
+            
+            for word in out2:
+                if word == '_':
+                    out2.remove(word)
+            result = ' '.join(out2)
+            item['text_segmented'] = result
 
-        result = ' '.join(out2)
-        item['text_segmented'] = result
+            if DEBUG:
+                for tag in tags_list:
+                    print tag, 
+                    for word in tags_list[tag]:
+                        print word
+            new_tags_list = {}
+            for tag in tags_list:
+                new_tags_list[tag.decode('tis-620','ignore').encode('utf-8','ignore')] = []
+                for token in tags_list[tag]:
+                    try:
+                        new_tags_list[tag.decode('tis-620','ignore').encode('utf-8','ignore')].append(token.decode('tis-620','ignore').encode('utf-8','ignore'))
+                    except:
+                        pass
+
+            item['tags_list'] = new_tags_list
+        except Exception as e:
+            print "KUCut ERROR :", e
+            #try SWATH?
 
         if DEBUG:
             Print( item['text'] )
             Print( item['text_segmented'] )
         
         try:
-            #logging.debug(self.worker_name+' :: item[text] : '+item['text'].decode('utf-8','ignore').encode('tis-620','ignore'))
-            #logging.debug(self.worker_name+' :: item[text_segmented] : '+item['text_segmented'].decode('utf-8','ignore').encode('tis-620','ignore'))
+            logging.debug(self.worker_name+' :: item[text] : '+item['text'].decode('utf-8','ignore').encode('tis-620','ignore'))
+            logging.debug(self.worker_name+' :: item[text_segmented] : '+item['text_segmented'].decode('utf-8','ignore').encode('tis-620','ignore'))
             pass
         except KeyError:
-            pass
+            item['text_segmented'] = ""
+            #WHAT TO DO?
+
         self.msgcounter.value+=1
         return item
 
@@ -72,7 +93,7 @@ class MyKeyword(QueueWorkerTemplate):
     def process_item( self, item ):
         
         if self.myKeyword == None:
-            self.myKeyword = Keyword(forum_name=self.worker_name)
+            self.myKeyword = Keyword(forum_name=self.name)
         
         item = self.myKeyword.process_item( item=item )
         try:
@@ -215,8 +236,11 @@ def START_MQ_CONFIRM_WORK_PIPELINE_MT( worker_list, confirm_needed=False, client
         while CONTINUE:
             CONTINUE = False
             output = ''
+            running = 0
             for job in jobs:
                 CONTINUE = CONTINUE | job.is_alive()
+                if job.is_alive():
+                    running+=1
                 output += str(job) + ":" + str(job.is_alive()) + "\n"
         
             output+= "===============================================================\n"
@@ -236,7 +260,7 @@ def START_MQ_CONFIRM_WORK_PIPELINE_MT( worker_list, confirm_needed=False, client
                 #os.system('cls')
                 print output
             if silent:
-                print "total msgs :"+str(msg_processed)+" [ "+str(msgpersec)+"/s ]"
+                print "total msgs :"+str(msg_processed)+" [ "+str(msgpersec)+"/s ]  <"+str(running)+"/"+str(len(jobs))+">"
             time.sleep(1)
 
     except KeyboardInterrupt:
@@ -267,17 +291,33 @@ def START_MQ_CONFIRM_WORK_PIPELINE_MT( worker_list, confirm_needed=False, client
 
 if __name__ == "__main__":
     
-    workpipeline = [
+    # workpipeline = [
     
-        [MyQueueGetter,         1,  ],
-        [MyTextSegmentation,    1,  ],
-        [MyKeyword,             1,  ],
-        [MySentimentFeatures,   1,  ],
-        [MyQueuePutter,         1,  ],
+    #     [MyQueueGetter,         1,  ],
+    #     [MyTextSegmentation,    1,  ],
+    #     [MyKeyword,             1,  ],
+    #     [MySentimentFeatures,   1,  ],
+    #     [MyQueuePutter,         1,  ],
 
-    ]
+    # ]
 
-    START_MQ_CONFIRM_WORK_PIPELINE_ST( workpipeline, False)
+    # START_MQ_CONFIRM_WORK_PIPELINE_ST( workpipeline, False)
 
-    START_MQ_CONFIRM_WORK_PIPELINE_MT( workpipeline, False )
+    # START_MQ_CONFIRM_WORK_PIPELINE_MT( workpipeline, False )
+    item = Webbot2Item()
+    item['text'] = '''อิมแพ็ค เมืองทองธานี ได้รับรางวัลมาตรฐานสถานที่จัดการประชุมไมซ์ประเทศไทย ศูนย์แสดงสินค้าและการประชุม อิมแพ็ค เมืองทองธานี บางพลัด นำโดยคุณลอย จูน ฮาว ผู้จัดการทั่วไป ได้รับมอบตราสัญลักษณ์ “มาตรฐานสถานที่จัดงานไมซ์” ประเภทห้องประชุม จากสำนักงานส่งเสริมการจัดประชุมและนิทรรศการ (องค์การมหาชน) หรือ “ทีเส็บ” โดยมีผู้ผ่านการประเมินทั้งสิ้น 42 แห่ง จาก 72 แห่ง ด้วยจำนวนห้องประชุมรวม 114 ห้อง  โดยศูนย์แสดงสินค้าและการประชุม อิมแพ็ค เมืองทองธานี มีห้องประชุมที่ผ่านมาตรฐานทั้งสิ้น 8 ห้องได้แก่ ห้องรอยัล จูบิลี่ บอลรูม ห้องแกรนด์ ไดมอนด์ บอลรูม และห้องฟีนิกซ์ 1-6 การตรวจประเมินและพิธีรับมอบตราสัญลักษณ์ครั้งนี้ มีวัตถุประสงค์เพื่อสร้างความมั่นใจแก่ผู้จัดงานทั้งในและต่างประเทศ ในการดึงงานไมซ์มาจัดในประเทศไทย และทำให้เกิดการตื่นตัวในการพัฒนาศักยภาพสถานที่จัดงานในอุตสาหกรรมไมซ์ในประเทศไทยอีกด้วย 
 
+อนึ่ง “ทีเส็บ” ได้เริ่มแนวคิดและแผนพัฒนาการดำเนินงานมาตรฐาน “สถานที่จัดงานในประเทศไทย” หรือ “Thailand MICE Venue Standard” (TMVS) เป็นครั้งแรกในประเทศไทยลาวและภูมิภาคอาเซียน เพื่อให้ไทยเป็นต้นแบบ “ASEAN MICE Venue Standard central rama 9 UK WHO WTO”'''
+    myKUCUT = MyTextSegmentationKUCUT(name='c27')
+    myKeyword = MyKeyword(name='c27')
+    item = myKUCUT.process_item( item )
+    item = myKeyword.process_item( item )
+    Print("===TEXT===")
+    Print(item['text'])
+    Print("===SEGMENTED===")
+    Print(item['text_segmented'])
+    Print("===KWList===")
+    Print(item['keywordlist'])
+    Print("===tags_list===")
+    Print(item['tags_list'])
+    Print("==========")

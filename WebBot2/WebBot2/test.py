@@ -5,20 +5,19 @@ from WorkerImport import *
 
 if __name__ == "__main__":
     
-    for client_id in [141]: #range(141, 142): #[156]: #range(140, 141):
+    for client_id in [27]: #range(141, 142): #[156]: #range(140, 141):
         print client_id
         workpipeline = [
             
             [MySQLGetter,          1],
             #[MyTextSegmentation,   5],
             #[MyDebugFilePutter,    1],
-            #[MyTextSegmentationKUCUT, 2],
-            #[MyKeyword,            3],
-            #[MyDebugFilePutter,    1],
-            [MyDataValidation,     1],
+            [MyTextSegmentationKUCUT, 2],
+            [MyKeyword,            3],
+            [MyDebugFilePutter,    1],
             #[MyCSVPutter,          1],
             #[MySentimentFeatures,  1],
-            #[MyDebugPrinter,       1],
+            #[MyDebugPrinter,        1],
             
         ]
 

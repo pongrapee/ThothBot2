@@ -4,4 +4,3 @@
 from QueueWorkerTemplate import *
 from GetterPutter import *
 from POCQueueWorker import *
-from POCQueueWorker2 import *

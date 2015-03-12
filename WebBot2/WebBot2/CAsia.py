@@ -13,8 +13,8 @@ class MyDataProcessing(QueueWorkerTemplate):
         super(MyDataProcessing,self).__init__(input_queue=input_queue, output_queue=output_queue, name=name, id=id)
 
     def process_item( self, item ):
-        item['subject'] = item['region']+"_"+item['name']
-
+        #item['subject'] = item['region']+"_"+item['name']
+        pass
     
 class MyDataValidation(QueueWorkerTemplate):
     workertype = 'MyDataValidation'
@@ -27,7 +27,7 @@ class MyDataValidation(QueueWorkerTemplate):
         #TODO
         #load rules from self.rules_file
         self.validation_rules = [
-            #column_name, checking_function (must return T/F)
+            #column_name, checking_function (must return T/F), other params
             ["datetime",        is_datetime_str,            None],
             ["datetime",        is_not_null_or_blank,       None],
             ["subject",         is_within_choices,          [   "SCB",

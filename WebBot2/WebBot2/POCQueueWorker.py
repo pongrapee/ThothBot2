@@ -7,6 +7,7 @@ from TextSegmentation import *
 from Keyword import *
 from SentimentFeatures import *
 from kucut import SimpleKucutWrapper as KUCut
+from RealTimeIndex import *
 
 from pipelines import *
 
@@ -39,37 +40,63 @@ class MyTextSegmentationKUCUT(QueueWorkerTemplate):
     def process_item( self, item ):
         if self.myTextSegmentationKUCUT == None:
             self.myTextSegmentationKUCUT = KUCut()
-        input = clean_text(item['text'])
-        try:
-            output,tags_list = self.myTextSegmentationKUCUT.tokenize([input])
-            out2 = output[0][0]
-            
-            for word in out2:
-                if word == '_':
-                    out2.remove(word)
-            result = ' '.join(out2)
-            item['text_segmented'] = result
+        
+        new_tags_list = {}
 
-            if DEBUG:
-                for tag in tags_list:
-                    print tag, 
-                    for word in tags_list[tag]:
-                        print word
-            new_tags_list = {}
-            for tag in tags_list:
+        try:
+            input_title = clean_text(item['title'])
+            output_title,tags_list_title = self.myTextSegmentationKUCUT.tokenize([input_title])
+            output_title_2 = output_title[0][0]
+            
+            for word in output_title_2:
+                if word == '_':
+                    output_title_2.remove(word)
+            result_title = ' '.join(output_title_2)
+            item['title_segmented'] = result_title
+            
+            for tag in tags_list_title:
                 new_tags_list[tag.decode('tis-620','ignore').encode('utf-8','ignore')] = []
-                for token in tags_list[tag]:
+                for token in tags_list_title[tag]:
                     try:
                         new_tags_list[tag.decode('tis-620','ignore').encode('utf-8','ignore')].append(token.decode('tis-620','ignore').encode('utf-8','ignore'))
                     except:
                         pass
-
-            item['tags_list'] = new_tags_list
+            
+        except KeyError:
+            item['title']=""
+            item['title_segmented']=""
         except Exception as e:
             print "KUCut ERROR :", e
-            #try SWATH?
+
+        try:
+            input_text = clean_text(item['text'])
+            output_text,tags_list_text = self.myTextSegmentationKUCUT.tokenize([input_text])
+            output_text_2 = output_text[0][0]
+            
+            for word in output_text_2:
+                if word == '_':
+                    output_text_2.remove(word)
+            result_text = ' '.join(output_text_2)
+            item['text_segmented'] = result_text
+
+            for tag in tags_list_text:
+                new_tags_list[tag.decode('tis-620','ignore').encode('utf-8','ignore')] = []
+                for token in tags_list_text[tag]:
+                    try:
+                        new_tags_list[tag.decode('tis-620','ignore').encode('utf-8','ignore')].append(token.decode('tis-620','ignore').encode('utf-8','ignore'))
+                    except:
+                        pass
+        except KeyError:
+            item['text']=""
+            item['text_segmented']=""
+        except Exception as e:
+            print "KUCut ERROR :", e
+        
+        item['tags_list'] = new_tags_list
 
         if DEBUG:
+            Print( item['title'] )
+            Print( item['title_segmented'] )
             Print( item['text'] )
             Print( item['text_segmented'] )
         
@@ -78,8 +105,7 @@ class MyTextSegmentationKUCUT(QueueWorkerTemplate):
             logging.debug(self.worker_name+' :: item[text_segmented] : '+item['text_segmented'].decode('utf-8','ignore').encode('tis-620','ignore'))
             pass
         except KeyError:
-            item['text_segmented'] = ""
-            #WHAT TO DO?
+            pass
 
         self.msgcounter.value+=1
         return item
@@ -126,7 +152,7 @@ class MySentimentFeatures(QueueWorkerTemplate):
 
 class MyDebugPrinter(QueueWorkerTemplate):
     workertype = 'MyDebugPrinter'
-    def __init__(self, input_queue=None, output_queue=None, name='MyDebugPrinter', id=0, hostname='27.254.142.36', username=u'thothoffice', password=u'thothoffice!', queue_name=u'NickQueue' ):
+    def __init__(self, input_queue=None, output_queue=None, name='MyDebugPrinter', id=0, ):
 
         super(MyDebugPrinter,self).__init__(input_queue=input_queue, output_queue=output_queue, name=name, id=id)
 
@@ -135,6 +161,19 @@ class MyDebugPrinter(QueueWorkerTemplate):
         self.msgcounter.value+=1
         return item
 
+class MyRealTimeIndexInsert(QueueWorkerTemplate):
+    workertype = 'MyRealTimeIndexInsert'
+    def __init__(self, input_queue=None, output_queue=None, name='MyRealTimeIndexInsert', id=0, ):
+
+        super(MyRealTimeIndexInsert,self).__init__(input_queue=input_queue, output_queue=output_queue, name=name, id=id)
+        self.rtindex = None 
+
+    def process_item( self, item ):  
+        if self.rtindex is None:
+            self.rtindex = RealTimeIndexInsert()
+        item = self.rtindex.process_item( item )
+        self.msgcounter.value+=1
+        return item
 
 def START_MQ_CONFIRM_WORK_PIPELINE_ST( worker_list=[], confirm_needed=False, client_id='c153', silent=False, ):
     msg_processed=0
@@ -305,6 +344,7 @@ if __name__ == "__main__":
 
     # START_MQ_CONFIRM_WORK_PIPELINE_MT( workpipeline, False )
     item = Webbot2Item()
+    item['title'] = '''ทดสอบภาษาไทย'''
     item['text'] = '''อิมแพ็ค เมืองทองธานี ได้รับรางวัลมาตรฐานสถานที่จัดการประชุมไมซ์ประเทศไทย ศูนย์แสดงสินค้าและการประชุม อิมแพ็ค เมืองทองธานี บางพลัด นำโดยคุณลอย จูน ฮาว ผู้จัดการทั่วไป ได้รับมอบตราสัญลักษณ์ “มาตรฐานสถานที่จัดงานไมซ์” ประเภทห้องประชุม จากสำนักงานส่งเสริมการจัดประชุมและนิทรรศการ (องค์การมหาชน) หรือ “ทีเส็บ” โดยมีผู้ผ่านการประเมินทั้งสิ้น 42 แห่ง จาก 72 แห่ง ด้วยจำนวนห้องประชุมรวม 114 ห้อง  โดยศูนย์แสดงสินค้าและการประชุม อิมแพ็ค เมืองทองธานี มีห้องประชุมที่ผ่านมาตรฐานทั้งสิ้น 8 ห้องได้แก่ ห้องรอยัล จูบิลี่ บอลรูม ห้องแกรนด์ ไดมอนด์ บอลรูม และห้องฟีนิกซ์ 1-6 การตรวจประเมินและพิธีรับมอบตราสัญลักษณ์ครั้งนี้ มีวัตถุประสงค์เพื่อสร้างความมั่นใจแก่ผู้จัดงานทั้งในและต่างประเทศ ในการดึงงานไมซ์มาจัดในประเทศไทย และทำให้เกิดการตื่นตัวในการพัฒนาศักยภาพสถานที่จัดงานในอุตสาหกรรมไมซ์ในประเทศไทยอีกด้วย 
 
 อนึ่ง “ทีเส็บ” ได้เริ่มแนวคิดและแผนพัฒนาการดำเนินงานมาตรฐาน “สถานที่จัดงานในประเทศไทย” หรือ “Thailand MICE Venue Standard” (TMVS) เป็นครั้งแรกในประเทศไทยลาวและภูมิภาคอาเซียน เพื่อให้ไทยเป็นต้นแบบ “ASEAN MICE Venue Standard central rama 9 UK WHO WTO”'''
@@ -312,6 +352,10 @@ if __name__ == "__main__":
     myKeyword = MyKeyword(name='c27')
     item = myKUCUT.process_item( item )
     item = myKeyword.process_item( item )
+    Print("===TITLE===")
+    Print(item['title'])
+    Print("===SEGMENTED===")
+    Print(item['title_segmented'])
     Print("===TEXT===")
     Print(item['text'])
     Print("===SEGMENTED===")

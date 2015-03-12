@@ -12,13 +12,14 @@ if __name__ == "__main__":
             [MySQLGetter,          1],
             #[MyTextSegmentation,   5],
             #[MyDebugFilePutter,    1],
-            #[MyTextSegmentationKUCUT, 2],
+            [MyTextSegmentationKUCUT, 2],
             #[MyKeyword,            3],
-            #[MyDebugFilePutter,    1],
-            [MyDataValidation,     1],
+            #[MyDataValidation,     1],
             #[MyCSVPutter,          1],
             #[MySentimentFeatures,  1],
             #[MyDebugPrinter,       1],
+            [MyRealTimeIndexInsert, 1],
+            [MyDebugFilePutter,    1],
             
         ]
 

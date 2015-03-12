@@ -11,6 +11,7 @@ class Webbot2Item(Item):
     url             = Field()
     author          = Field()
     title           = Field()
+    title_segmented = Field()
     text            = Field()
     text_segmented  = Field()
     date            = Field()

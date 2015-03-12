@@ -161,7 +161,7 @@ class MySQLGetter(QueueWorkerTemplate):
             ['type',                'type'],
             ['author',              'author'],
             ['group',               'group'],
-            ['facebook_page_name',  'page_id'],
+            ['facebook_page_name',  'facebook_id'],
             ['likes',               'likes'],
             ['shares',              'shares'],
             ['mood',                'mood_original'],
@@ -178,7 +178,7 @@ class MySQLGetter(QueueWorkerTemplate):
 
         if SQLSTATEMENT == '':
             #self.SQLSTATEMENT = SQLSTATEMENT="SELECT `post_id`, `subject_name` as `subject`, `post_date` as `datetime`, `body` as `text`, `type`, `author`, `group`, `facebook_page_name` as `page_id`, `likes`, `shares`, `mood` as `mood_original` FROM facebook_"+str(self.name)+" WHERE `post_id` {0} AND `post_date` >= '2014-12-01' AND `post_date` <= '2015-01-31' ORDER BY `post_id` DESC LIMIT 1000;"
-            self.SQLSTATEMENT = SQLSTATEMENT="SELECT " + ','.join(col_list) + " FROM facebook_"+str(self.name)+" WHERE `post_id` {0} AND `post_date` >= '2015-02-01' AND `post_date` <= '2015-02-03' ORDER BY `post_id` DESC LIMIT 1000;"
+            self.SQLSTATEMENT = SQLSTATEMENT="SELECT " + ','.join(col_list) +" FROM facebook_"+str(self.name)+" WHERE `post_id` {0} AND `post_date` >= '2015-02-01' AND `post_date` <= '2015-02-03' ORDER BY `post_id` DESC LIMIT 1000;"
         else:
             self.SQLSTATEMENT = SQLSTATEMENT
 
@@ -247,7 +247,10 @@ class MySQLGetter(QueueWorkerTemplate):
             if row is not None:
                 self.at_least_some_data = True
                 for i in range(len(row)):
-                    item[self.column_list[i][1]] = row[i]
+                    if is_text(row[i]):
+                        item[self.column_list[i][1]] = clean_text(row[i])
+                    else:
+                        item[self.column_list[i][1]] = row[i]
                 if self.minidprocessed == 0 or self.minidprocessed > item['post_id']:
                     self.minidprocessed = item['post_id']
                 #print item['post_id']

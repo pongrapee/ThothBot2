@@ -12,17 +12,17 @@ if __name__ == "__main__":
             [MySQLGetter,          1],
             #[MyTextSegmentation,   5],
             #[MyDebugFilePutter,    1],
-            [MyTextSegmentationKUCUT, 2],
+            [MyTextSegmentationKUCUT, 4],
             #[MyKeyword,            3],
             #[MyDataValidation,     1],
             #[MyCSVPutter,          1],
             #[MySentimentFeatures,  1],
             #[MyDebugPrinter,       1],
             [MyRealTimeIndexInsert, 1],
-            [MyDebugFilePutter,    1],
+            #[MyDebugFilePutter,    1],
             
         ]
 
-        #START_MQ_CONFIRM_WORK_PIPELINE_MT( worker_list=workpipeline, confirm_needed=False, client_id='c'+str(client_id), silent=True )
+        START_MQ_CONFIRM_WORK_PIPELINE_MT( worker_list=workpipeline, confirm_needed=False, client_id='c'+str(client_id), silent=True )
 
-        START_MQ_CONFIRM_WORK_PIPELINE_ST( worker_list=workpipeline, confirm_needed=False, client_id='c'+str(client_id), silent=False )
+        #START_MQ_CONFIRM_WORK_PIPELINE_ST( worker_list=workpipeline, confirm_needed=False, client_id='c'+str(client_id), silent=False )

@@ -20,6 +20,7 @@ class Webbot2Item(Item):
     rawdatetime     = Field()
     type            = Field()
     page_id         = Field()
+    facebook_id     = Field()
     parse_date      = Field()
     post_id         = Field()
     

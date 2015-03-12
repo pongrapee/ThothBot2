@@ -164,7 +164,6 @@ class MyDebugPrinter(QueueWorkerTemplate):
 class MyRealTimeIndexInsert(QueueWorkerTemplate):
     workertype = 'MyRealTimeIndexInsert'
     def __init__(self, input_queue=None, output_queue=None, name='MyRealTimeIndexInsert', id=0, ):
-
         super(MyRealTimeIndexInsert,self).__init__(input_queue=input_queue, output_queue=output_queue, name=name, id=id)
         self.rtindex = None 
 

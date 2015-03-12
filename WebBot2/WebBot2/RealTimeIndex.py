@@ -30,31 +30,33 @@ class RealTimeIndexInsert( object ):
             item['title_segmented']
             item['facebook_id']
             item['author']
-            item['channel']
+            #item['channel']
 
-        except KeyError:
+        except KeyError as e:
+            print "missing key", e
             return item
+
         cursor = self.sqldb.cursor()
-        try:
-            parse_date = datetime.strptime(item['datetime'], "%Y-%m-%d %H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")
-        except:
-            parse_date = datetime.strptime(item['datetime'], " %Y - %m - %d %H : %M : %S ").strftime("%Y-%m-%d %H:%M:%S")
-        parse_date_unix = int(time.mktime(datetime.strptime(parse_date, "%Y-%m-%d %H:%M:%S").timetuple()) + 25200)
+        # try:
+        #     parse_date = datetime.strptime(item['datetime'], "%Y-%m-%d %H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")
+        # except:
+        #     parse_date = datetime.strptime(item['datetime'], " %Y - %m - %d %H : %M : %S ").strftime("%Y-%m-%d %H:%M:%S")
+        parse_date_unix = int(time.mktime(item['datetime'].timetuple())) + 25200
 
         #print parse_date_unix
 
-        SQLStatement = "replace into rt_index_channel (id, parse_date, body, title, facebook_id, author, channel) VALUES ('{id}', '{parse_date}', '{body}', '{title}', '{facebook_id}' , '{author}' , '{channel}')".format(
+        SQLStatement = "replace into rt_index (id, parse_date, body, title, facebook_id, author) VALUES ('{id}', '{parse_date}', '{body}', '{title}', '{facebook_id}' , '{author}')".format(
                 id=item['post_id'], 
                 parse_date=parse_date_unix, 
                 body=item['text_segmented'], 
                 title=item['title_segmented'], 
                 facebook_id=item['facebook_id'], 
                 author=item['author'], 
-                channel=item['channel'],
+                #channel=item['channel'],
                 )
-                
-        cursor.execute(SQLStatement.format())
-        #Print( SQLStatement )
+        #Print( SQLStatement )      
+        cursor.execute(SQLStatement)
+        
         #cursor.close()
         return item
 
